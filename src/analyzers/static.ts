@@ -1,7 +1,23 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { Finding, StaticAnalyzerConfig, StaticReport, ToolSchema } from '../types.js'
+
+interface ShadowPatternEntry {
+  regex: string
+  risk: string
+  severity: 'warning' | 'critical'
+}
+
+interface CompiledPattern {
+  regex: RegExp
+  risk: string
+  severity: 'warning' | 'critical'
+}
 
 export class StaticAnalyzer {
   private config: StaticAnalyzerConfig
+  private shadowPatterns: CompiledPattern[]
 
   constructor(config: StaticAnalyzerConfig = {}) {
     this.config = {
@@ -9,6 +25,15 @@ export class StaticAnalyzer {
       maxTools: 20,
       ...config,
     }
+
+    const __dirname = dirname(fileURLToPath(import.meta.url))
+    const patternsPath = resolve(__dirname, 'shadow-patterns.json')
+    const raw = JSON.parse(readFileSync(patternsPath, 'utf-8')) as { patterns: ShadowPatternEntry[] }
+    this.shadowPatterns = raw.patterns.map(p => ({
+      regex: new RegExp(p.regex.replace(/^\(\?i\)/, ''), 'i'),
+      risk: p.risk,
+      severity: p.severity,
+    }))
   }
 
   /** Main entry point — runs all checks and returns the full report. */
@@ -62,12 +87,30 @@ export class StaticAnalyzer {
 
   /**
    * Check 4: scan tool descriptions for shadow patterns.
-   * Patterns that indicate cross-tool interference or forced invocation.
+   * Patterns that indicate cross-tool interference or forced invocation,
+   * loaded once at construction time from shadow-patterns.json.
    * Finding code: SHADOW_PATTERN
-   * Severity: warning (critical if the pattern references another tool by name)
+   * Severity: warning (critical if the matched pattern is marked critical)
    */
-  private checkShadowPatterns(_tools: ToolSchema[]): Finding[] {
-    return []
+  private checkShadowPatterns(tools: ToolSchema[]): Finding[] {
+    const findings: Finding[] = []
+
+    for (const tool of tools) {
+      for (const pattern of this.shadowPatterns) {
+        if (pattern.regex.test(tool.description)) {
+          const desc = tool.description
+          const excerpt = desc.length > 60 ? desc.slice(0, 57) + '...' : desc
+          findings.push({
+            code: 'SHADOW_PATTERN',
+            severity: pattern.severity,
+            tool: tool.name,
+            message: `Tool "${tool.name}" contains ${pattern.risk} pattern: "${excerpt}"`,
+          })
+        }
+      }
+    }
+
+    return findings
   }
 
   /**
