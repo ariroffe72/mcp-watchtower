@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "patterns": [
+    { "regex": "(?i)before using\\s+\\w+",        "risk": "precondition hijack",  "severity": "warning" },
+    { "regex": "(?i)always call (this|first)",     "risk": "forced invocation",    "severity": "warning" },
+    { "regex": "(?i)instead of [a-z_]+",           "risk": "tool replacement",     "severity": "warning" },
+    { "regex": "(?i)do not use [a-z_]+",           "risk": "tool suppression",     "severity": "warning" },
+    { "regex": "(?i)override.*tool",               "risk": "override attempt",     "severity": "warning" },
+    { "regex": "(?i)ignore (previous|other) tool", "risk": "context poisoning",    "severity": "warning" },
+    { "regex": "(?i)required prior to",            "risk": "precondition hijack",  "severity": "warning" },
+    { "regex": "(?i)must be called before",        "risk": "forced invocation",    "severity": "critical" }
+  ]
+}
