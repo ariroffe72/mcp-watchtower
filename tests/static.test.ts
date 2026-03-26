@@ -73,7 +73,7 @@ describe('StaticAnalyzer', () => {
   })
 
   describe('checkDuplicateNames', () => {
-    it.skip('flags duplicate tool names as critical', () => {
+    it('flags duplicate tool names as critical', () => {
       const report = analyzer.analyze('test-server', duplicateNames)
       const dups = report.findings.filter(f => f.code === 'DUPLICATE_TOOL_NAME')
       expect(dups).toHaveLength(1)
@@ -81,35 +81,35 @@ describe('StaticAnalyzer', () => {
       expect(dups[0].tool).toBe('get_price')
     })
 
-    it.skip('does not flag unique names', () => {
+    it('does not flag unique names', () => {
       const report = analyzer.analyze('test-server', clean)
       expect(report.findings.filter(f => f.code === 'DUPLICATE_TOOL_NAME')).toHaveLength(0)
     })
   })
 
   describe('checkNamingConvention', () => {
-    it.skip('flags outlier naming conventions', () => {
+    it('flags outlier naming conventions', () => {
       const report = analyzer.analyze('test-server', mixedConventions)
       const findings = report.findings.filter(f => f.code === 'NAMING_CONVENTION')
       expect(findings.length).toBeGreaterThan(0)
       expect(findings[0].severity).toBe('warning')
     })
 
-    it.skip('does not flag consistent snake_case names', () => {
+    it('does not flag consistent snake_case names', () => {
       const report = analyzer.analyze('test-server', clean)
       expect(report.findings.filter(f => f.code === 'NAMING_CONVENTION')).toHaveLength(0)
     })
   })
 
   describe('checkParameterConflicts', () => {
-    it.skip('flags ticker vs symbol as a parameter conflict', () => {
+    it('flags ticker vs symbol as a parameter conflict', () => {
       const report = analyzer.analyze('test-server', paramConflicts)
       const findings = report.findings.filter(f => f.code === 'PARAMETER_CONFLICT')
       expect(findings.length).toBeGreaterThan(0)
       expect(findings[0].severity).toBe('warning')
     })
 
-    it.skip('does not flag tools with no shared parameter concepts', () => {
+    it('does not flag tools with no shared parameter concepts', () => {
       const report = analyzer.analyze('test-server', clean)
       expect(report.findings.filter(f => f.code === 'PARAMETER_CONFLICT')).toHaveLength(0)
     })
@@ -150,14 +150,14 @@ describe('StaticAnalyzer', () => {
   })
 
   describe('checkToolCount', () => {
-    it.skip('warns when tool count exceeds default threshold of 20', () => {
+    it('warns when tool count exceeds default threshold of 20', () => {
       const report = analyzer.analyze('test-server', tooManyTools)
       const findings = report.findings.filter(f => f.code === 'TOOL_COUNT_WARNING')
       expect(findings).toHaveLength(1)
       expect(findings[0].severity).toBe('warning')
     })
 
-    it.skip('respects custom maxTools config', () => {
+    it('respects custom maxTools config', () => {
       const strictAnalyzer = new StaticAnalyzer({ maxTools: 5 })
       const report = strictAnalyzer.analyze('test-server', clean)
       expect(report.findings.filter(f => f.code === 'TOOL_COUNT_WARNING')).toHaveLength(0)
@@ -165,7 +165,7 @@ describe('StaticAnalyzer', () => {
       expect(overReport.findings.filter(f => f.code === 'TOOL_COUNT_WARNING')).toHaveLength(1)
     })
 
-    it.skip('does not warn when tool count is under threshold', () => {
+    it('does not warn when tool count is under threshold', () => {
       const report = analyzer.analyze('test-server', clean)
       expect(report.findings.filter(f => f.code === 'TOOL_COUNT_WARNING')).toHaveLength(0)
     })

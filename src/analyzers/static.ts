@@ -15,6 +15,28 @@ interface CompiledPattern {
   severity: 'warning' | 'critical'
 }
 
+type Convention = 'snake_case' | 'camelCase' | 'kebab-case' | 'unknown'
+
+const CONVENTION_PRIORITY: Array<Exclude<Convention, 'unknown'>> = ['snake_case', 'camelCase', 'kebab-case']
+
+function detectConvention(name: string): Convention {
+  if (/^[a-z][a-z0-9]*(_[a-z0-9]+)+$/.test(name)) return 'snake_case'
+  if (/^[a-z][a-zA-Z0-9]*$/.test(name) && /[A-Z]/.test(name)) return 'camelCase'
+  if (/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(name)) return 'kebab-case'
+  return 'unknown'
+}
+
+const SYNONYM_GROUPS: string[][] = [
+  ['ticker', 'symbol', 'stock'],
+  ['id', 'identifier', 'key'],
+  ['query', 'search', 'q', 'term'],
+  ['limit', 'max', 'count', 'size'],
+  ['offset', 'skip', 'page'],
+  ['url', 'uri', 'endpoint', 'href'],
+  ['user', 'username', 'user_id', 'userId'],
+  ['date', 'timestamp', 'time', 'datetime'],
+]
+
 export class StaticAnalyzer {
   private config: StaticAnalyzerConfig
   private shadowPatterns: CompiledPattern[]
@@ -59,8 +81,24 @@ export class StaticAnalyzer {
    * Returns a critical finding for each name that appears more than once.
    * Finding code: DUPLICATE_TOOL_NAME
    */
-  private checkDuplicateNames(_tools: ToolSchema[]): Finding[] {
-    return []
+  private checkDuplicateNames(tools: ToolSchema[]): Finding[] {
+    const counts = new Map<string, number>()
+    for (const tool of tools) {
+      counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1)
+    }
+
+    const findings: Finding[] = []
+    for (const [name, count] of counts) {
+      if (count > 1) {
+        findings.push({
+          code: 'DUPLICATE_TOOL_NAME',
+          severity: 'critical',
+          tool: name,
+          message: `Tool name '${name}' is defined ${count} times in this server`,
+        })
+      }
+    }
+    return findings
   }
 
   /**
@@ -70,8 +108,36 @@ export class StaticAnalyzer {
    * Finding code: NAMING_CONVENTION
    * Severity: warning
    */
-  private checkNamingConvention(_tools: ToolSchema[]): Finding[] {
-    return []
+  private checkNamingConvention(tools: ToolSchema[]): Finding[] {
+    const counts = new Map<Exclude<Convention, 'unknown'>, number>(
+      CONVENTION_PRIORITY.map(c => [c, 0])
+    )
+
+    for (const tool of tools) {
+      const conv = detectConvention(tool.name)
+      if (conv !== 'unknown') {
+        counts.set(conv, (counts.get(conv) ?? 0) + 1)
+      }
+    }
+
+    const maxCount = Math.max(...counts.values())
+    if (maxCount === 0) return []
+
+    const majority = CONVENTION_PRIORITY.find(c => counts.get(c) === maxCount)!
+
+    const findings: Finding[] = []
+    for (const tool of tools) {
+      const detected = detectConvention(tool.name)
+      if (detected !== 'unknown' && detected !== majority) {
+        findings.push({
+          code: 'NAMING_CONVENTION',
+          severity: 'warning',
+          tool: tool.name,
+          message: `Tool '${tool.name}' uses ${detected} but majority convention is ${majority}`,
+        })
+      }
+    }
+    return findings
   }
 
   /**
@@ -81,8 +147,44 @@ export class StaticAnalyzer {
    * Finding code: PARAMETER_CONFLICT
    * Severity: warning
    */
-  private checkParameterConflicts(_tools: ToolSchema[]): Finding[] {
-    return []
+  private checkParameterConflicts(tools: ToolSchema[]): Finding[] {
+    const findings: Finding[] = []
+    const seen = new Set<string>()
+
+    for (let i = 0; i < tools.length; i++) {
+      const toolA = tools[i]
+      const paramsA = Object.keys(toolA.inputSchema?.properties ?? {})
+      if (paramsA.length === 0) continue
+
+      for (let j = i + 1; j < tools.length; j++) {
+        const toolB = tools[j]
+        const paramsB = Object.keys(toolB.inputSchema?.properties ?? {})
+        if (paramsB.length === 0) continue
+
+        for (let groupIdx = 0; groupIdx < SYNONYM_GROUPS.length; groupIdx++) {
+          const group = SYNONYM_GROUPS[groupIdx]
+          const seenKey = [toolA.name, toolB.name].sort().join(':') + ':' + groupIdx
+
+          if (seen.has(seenKey)) continue
+
+          const paramA = paramsA.find(p => group.includes(p))
+          const paramB = paramsB.find(p => group.includes(p))
+
+          if (paramA !== undefined && paramB !== undefined && paramA !== paramB) {
+            seen.add(seenKey)
+            findings.push({
+              code: 'PARAMETER_CONFLICT',
+              severity: 'warning',
+              tool: toolA.name,
+              relatedTool: toolB.name,
+              message: `Parameter '${paramA}' in '${toolA.name}' and '${paramB}' in '${toolB.name}' likely refer to the same concept — consider using consistent naming`,
+            })
+          }
+        }
+      }
+    }
+
+    return findings
   }
 
   /**
@@ -119,7 +221,14 @@ export class StaticAnalyzer {
    * Finding code: TOOL_COUNT_WARNING
    * Severity: warning
    */
-  private checkToolCount(_tools: ToolSchema[]): Finding[] {
-    return []
+  private checkToolCount(tools: ToolSchema[]): Finding[] {
+    const max = this.config.maxTools ?? 20
+    if (tools.length <= max) return []
+
+    return [{
+      code: 'TOOL_COUNT_WARNING',
+      severity: 'warning',
+      message: `Server has ${tools.length} tools which exceeds the recommended maximum of ${max}. Consider splitting into focused sub-servers.`,
+    }]
   }
 }
