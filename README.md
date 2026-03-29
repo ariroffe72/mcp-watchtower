@@ -1,29 +1,29 @@
 # mcp-lens
 
-`mcp-lens` is a static analysis and compatibility tool for [Model Context Protocol (MCP)](https://modelcontextprotocol.io) servers. It detects tool naming conflicts, domain overlaps, shadow patterns in tool descriptions, and cross-server interference — helping developers build reliable multi-server MCP environments without unexpected collisions or ambiguous tool routing.
+Static analysis and compatibility checks for MCP (Model Context Protocol) servers.
+Point it at any MCP server — TypeScript, Python, Go, anything — and get a full
+report on tool naming conflicts, parameter inconsistencies, shadow patterns, and
+more.
 
-## Using with Python / FastMCP
-
-mcp-lens works with any MCP server regardless of language. Get your tool
-definitions as JSON and pass them via `--manifest` or stdin.
-
-**FastMCP:**
-
-```python
-# dump_tools.py
-import json
-from your_server import mcp  # your FastMCP instance
-
-tools = []
-for tool in mcp._tool_manager.list_tools():
-    tools.append({
-        "name": tool.name,
-        "description": tool.description,
-        "inputSchema": tool.parameters
-    })
-print(json.dumps(tools, indent=2))
-```
+## Usage
 
 ```bash
-python dump_tools.py | npx mcp-lens scan --server my-python-server
+# Any MCP server — just provide the start command
+npx mcp-lens scan --server "python my_server.py"
+npx mcp-lens scan --server "node dist/server.js"
+npx mcp-lens scan --server "uvx my-published-server"
+
+# CI mode — pass a tools manifest instead
+npx mcp-lens scan --manifest ./tools.json
+
+# JSON output for programmatic use
+npx mcp-lens scan --server "python my_server.py" --json
 ```
+
+## What it checks
+
+- Duplicate tool names within your server
+- Inconsistent naming conventions (snake_case vs camelCase vs kebab-case)
+- Parameter name conflicts across tools (ticker vs symbol for the same concept)
+- Shadow patterns in descriptions that hijack LLM tool routing
+- Tool count warnings (routing accuracy degrades above ~20 tools)

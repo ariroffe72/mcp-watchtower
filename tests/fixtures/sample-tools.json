@@ -5,7 +5,7 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "ticker": { "type": "string", "description": "Stock ticker symbol" }
+        "ticker": { "type": "string" }
       },
       "required": ["ticker"]
     }
@@ -16,7 +16,7 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "symbol": { "type": "string", "description": "Stock symbol" }
+        "symbol": { "type": "string" }
       },
       "required": ["symbol"]
     }
@@ -27,7 +27,7 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "query": { "type": "string", "description": "Search query" }
+        "query": { "type": "string" }
       },
       "required": ["query"]
     }
