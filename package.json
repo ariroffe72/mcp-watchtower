@@ -2,15 +2,22 @@
   "name": "mcp-lens",
   "version": "0.1.0",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "bin": {
+    "mcp-lens": "./dist/cli/index.js"
+  },
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/analyzers/shadow-patterns.json dist/src/analyzers/shadow-patterns.json",
     "test": "vitest",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "scan": "node ./dist/cli/index.js scan"
+  },
+  "dependencies": {
+    "commander": "^14.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
