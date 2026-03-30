@@ -1,29 +1,64 @@
 # mcp-lens
 
-Static analysis and compatibility checks for MCP (Model Context Protocol) servers.
-Point it at any MCP server — TypeScript, Python, Go, anything — and get a full
-report on tool naming conflicts, parameter inconsistencies, shadow patterns, and
-more.
+Static analysis for MCP (Model Context Protocol) servers. Point it at any MCP
+server — TypeScript, Python, Go, anything — and get a full compatibility report
+in seconds.
+
+## What it checks
+
+- **Duplicate tool names** — two tools in the same server with the same name
+- **Naming convention inconsistency** — mixing snake_case, camelCase, and kebab-case
+- **Parameter conflicts** — ticker in one tool, symbol in another for the same concept
+- **Shadow patterns** — description language that hijacks LLM tool routing
+- **Tool count** — routing accuracy degrades above ~20 tools per server
 
 ## Usage
 
 ```bash
-# Any MCP server — just provide the start command
+# Point at any running MCP server
 npx mcp-lens scan --server "python my_server.py"
 npx mcp-lens scan --server "node dist/server.js"
 npx mcp-lens scan --server "uvx my-published-server"
 
-# CI mode — pass a tools manifest instead
+# CI mode — pass a tools manifest instead of spinning up a server
 npx mcp-lens scan --manifest ./tools.json
 
-# JSON output for programmatic use
-npx mcp-lens scan --server "python my_server.py" --json
+# Flags
+npx mcp-lens scan --server "python my_server.py" --json          # JSON output
+npx mcp-lens scan --server "python my_server.py" --platform      # platform mode
+npx mcp-lens scan --server "python my_server.py" --max-tools 15  # custom threshold
+npx mcp-lens scan --server "python my_server.py" --name my-api   # custom server name
 ```
 
-## What it checks
+## Exit codes
 
-- Duplicate tool names within your server
-- Inconsistent naming conventions (snake_case vs camelCase vs kebab-case)
-- Parameter name conflicts across tools (ticker vs symbol for the same concept)
-- Shadow patterns in descriptions that hijack LLM tool routing
-- Tool count warnings (routing accuracy degrades above ~20 tools)
+- `0` — no critical findings
+- `1` — one or more critical findings (safe to use as a CI gate)
+
+## Using as a library
+
+```typescript
+import { StaticAnalyzer } from 'mcp-lens'
+
+const analyzer = new StaticAnalyzer({ platform: false, maxTools: 20 })
+const report = analyzer.analyze('my-server', tools)
+console.log(report.findings)
+```
+
+## CI example (GitHub Actions)
+
+```yaml
+- name: Lint MCP tools
+  run: npx mcp-lens scan --server "node dist/server.js" --json
+```
+
+## Platform mode
+
+If you are building an agent orchestrator or MCP registry that loads multiple
+servers simultaneously, pass `--platform`. This elevates name collision findings
+from informational to critical, since collisions are genuinely dangerous when
+multiple servers are loaded in the same context.
+
+```bash
+npx mcp-lens scan --server "node dist/server.js" --platform
+```

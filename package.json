@@ -1,27 +1,44 @@
 {
-    "name": "mcp-lens",
-    "version": "0.1.0",
-    "type": "module",
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "bin": {
-        "mcp-lens": "./dist/cli/index.js"
-    },
-    "engines": {
-        "node": ">=18"
-    },
-    "scripts": {
-        "build": "tsc && node -e \"require('fs').copyFileSync('src/analyzers/shadow-patterns.json', 'dist/src/analyzers/shadow-patterns.json')\"",
-        "test": "vitest",
-        "test:watch": "vitest --watch"
-    },
-    "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.28.0",
-        "commander": "^14.0.3"
-    },
-    "devDependencies": {
-        "@types/node": "^22.0.0",
-        "typescript": "^5.0.0",
-        "vitest": "^2.0.0"
-    }
+  "name": "mcp-lens",
+  "version": "0.1.0",
+  "description": "Static analysis and compatibility checks for MCP servers",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "bin": {
+    "mcp-lens": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/analyzers/shadow-patterns.json', 'dist/src/analyzers/shadow-patterns.json')\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "llm",
+    "ai",
+    "agents",
+    "static-analysis",
+    "lint"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
 }

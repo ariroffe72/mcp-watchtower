@@ -1,0 +1,16 @@
+# Source
+src/
+cli/
+tests/
+
+# Config
+tsconfig.json
+vitest.config.ts
+.gitignore
+
+# Dev artifacts
+*.tsbuildinfo
+node_modules/
+
+# Test fixtures (these are in dist/ if tsconfig includes them — exclude explicitly)
+dist/tests/

@@ -37,6 +37,12 @@ const SYNONYM_GROUPS: string[][] = [
   ['date', 'timestamp', 'time', 'datetime'],
 ]
 
+/**
+ * Runs static analysis on an MCP server's tool definitions.
+ * Checks for duplicate names, naming convention inconsistencies,
+ * parameter conflicts, shadow patterns, and tool count warnings.
+ * No LLM calls — all checks are deterministic and run offline.
+ */
 export class StaticAnalyzer {
   private config: StaticAnalyzerConfig
   private shadowPatterns: CompiledPattern[]
@@ -58,7 +64,12 @@ export class StaticAnalyzer {
     }))
   }
 
-  /** Main entry point — runs all checks and returns the full report. */
+  /**
+   * Run all static checks against a set of tool definitions.
+   * @param serverName - Name used in the returned report
+   * @param tools - Array of tool definitions from the MCP server
+   * @returns StaticReport containing all findings
+   */
   analyze(serverName: string, tools: ToolSchema[]): StaticReport {
     const findings: Finding[] = [
       ...this.checkDuplicateNames(tools),

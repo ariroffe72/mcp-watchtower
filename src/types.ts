@@ -1,4 +1,4 @@
-// A single tool as declared in an MCP server manifest
+/** A single tool as declared in an MCP server manifest */
 export interface ToolSchema {
   name: string
   description: string
@@ -9,25 +9,32 @@ export interface ToolSchema {
   }
 }
 
-// A single finding from any analyzer check
+/** A single finding produced by the StaticAnalyzer */
 export interface Finding {
+  /** Severity of the finding */
   severity: 'critical' | 'warning' | 'info'
-  code: string           // e.g. 'DUPLICATE_TOOL_NAME'
+  /** Machine-readable finding code, e.g. 'DUPLICATE_TOOL_NAME' */
+  code: string
   message: string
-  tool?: string          // which tool triggered it, if applicable
-  relatedTool?: string   // second tool involved, for conflict findings
+  /** Name of the tool that triggered this finding, if applicable */
+  tool?: string
+  /** Second tool involved, for conflict findings */
+  relatedTool?: string
 }
 
-// The full report returned by StaticAnalyzer.analyze()
+/** The full analysis report returned by StaticAnalyzer.analyze() */
 export interface StaticReport {
   server: string
   toolCount: number
   findings: Finding[]
-  passedAt: string       // ISO timestamp
+  /** ISO timestamp of when the analysis completed */
+  passedAt: string
 }
 
-// Config passed to StaticAnalyzer
+/** Configuration options for StaticAnalyzer */
 export interface StaticAnalyzerConfig {
-  platform?: boolean     // elevates name collision severity to critical
-  maxTools?: number      // default 20, threshold for tool count warning
+  /** Elevates name collision severity to critical. Use when loading multiple servers simultaneously. */
+  platform?: boolean
+  /** Warn when tool count exceeds this threshold. Default: 20 */
+  maxTools?: number
 }
