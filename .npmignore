@@ -2,6 +2,7 @@
 src/
 cli/
 tests/
+test-servers/
 
 # Config
 tsconfig.json
@@ -12,5 +13,5 @@ vitest.config.ts
 *.tsbuildinfo
 node_modules/
 
-# Test fixtures (these are in dist/ if tsconfig includes them — exclude explicitly)
+# Test fixtures
 dist/tests/
