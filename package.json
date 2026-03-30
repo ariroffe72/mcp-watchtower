@@ -1,27 +1,27 @@
 {
-  "name": "mcp-lens",
-  "version": "0.1.0",
-  "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
-  "bin": {
-    "mcp-lens": "./dist/cli/index.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "scripts": {
-    "build": "tsc && cp src/analyzers/shadow-patterns.json dist/src/analyzers/shadow-patterns.json",
-    "test": "vitest",
-    "test:watch": "vitest --watch"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.28.0",
-    "commander": "^14.0.3"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^2.0.0"
-  }
+    "name": "mcp-lens",
+    "version": "0.1.0",
+    "type": "module",
+    "main": "dist/src/index.js",
+    "types": "dist/src/index.d.ts",
+    "bin": {
+        "mcp-lens": "./dist/cli/index.js"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "scripts": {
+        "build": "tsc && node -e \"require('fs').copyFileSync('src/analyzers/shadow-patterns.json', 'dist/src/analyzers/shadow-patterns.json')\"",
+        "test": "vitest",
+        "test:watch": "vitest --watch"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.28.0",
+        "commander": "^14.0.3"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "typescript": "^5.0.0",
+        "vitest": "^2.0.0"
+    }
 }
