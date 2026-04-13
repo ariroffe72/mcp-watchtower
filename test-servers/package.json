@@ -1,0 +1,14 @@
+{
+  "name": "mcp-lens-test-servers",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build-all.js",
+    "build:ts": "node build-all.js --skip-python --skip-go",
+    "build:skip-go": "node build-all.js --skip-go",
+    "test": "node run-tests.js",
+    "test:ts": "node run-tests.js --skip-python --skip-go",
+    "test:skip-go": "node run-tests.js --skip-go"
+  }
+}
