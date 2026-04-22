@@ -43,7 +43,7 @@ const PYTHON_SERVERS = [
   'too-many-tools-mcp',
 ]
 
-console.log('\nBuilding mcp-lens test servers')
+console.log('\nBuilding mcp-watchtower test servers')
 console.log('='.repeat(40))
 
 // TypeScript servers

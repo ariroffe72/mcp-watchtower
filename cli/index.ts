@@ -9,7 +9,7 @@ import type { ToolSchema, Finding } from '../src/index.js'
 const program = new Command()
 
 program
-  .name('mcp-lens')
+  .name('mcp-watchtower')
   .description('Static analysis and compatibility checks for MCP servers')
   .version('0.1.0')
 
@@ -71,9 +71,9 @@ async function resolveTools(options: {
   }
   throw new Error(
     'No input provided. Examples:\n\n' +
-    '  npx mcp-lens scan --server "python my_server.py"\n' +
-    '  npx mcp-lens scan --server "node dist/server.js"\n' +
-    '  npx mcp-lens scan --manifest ./tools.json\n'
+    '  npx mcp-watchtower scan --server "python my_server.py"\n' +
+    '  npx mcp-watchtower scan --server "node dist/server.js"\n' +
+    '  npx mcp-watchtower scan --manifest ./tools.json\n'
   )
 }
 
@@ -99,7 +99,7 @@ async function fetchToolsFromServer(command: string): Promise<ToolSchema[]> {
   })
 
   const client = new Client(
-    { name: 'mcp-lens', version: '0.1.0' },
+    { name: 'mcp-watchtower', version: '0.1.0' },
     { capabilities: {} }
   )
 
@@ -171,7 +171,7 @@ function printHuman(server: string, toolCount: number, findings: Finding[]): voi
   const infos     = findings.filter(f => f.severity === 'info')
 
   process.stdout.write('\n')
-  process.stdout.write(`mcp-lens — ${server}\n`)
+  process.stdout.write(`mcp-watchtower — ${server}\n`)
   process.stdout.write(`${toolCount} tool${toolCount === 1 ? '' : 's'} scanned\n`)
   process.stdout.write('\n')
 

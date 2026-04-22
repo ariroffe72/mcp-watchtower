@@ -1,4 +1,4 @@
-# mcp-lens
+# mcp-watchtower
 
 Static analysis for MCP (Model Context Protocol) servers. Point it at any MCP
 server — TypeScript, Python, Go, anything — and get a full compatibility report
@@ -16,18 +16,18 @@ in seconds.
 
 ```bash
 # Point at any running MCP server
-npx mcp-lens scan --server "python my_server.py"
-npx mcp-lens scan --server "node dist/server.js"
-npx mcp-lens scan --server "uvx my-published-server"
+npx mcp-watchtower scan --server "python my_server.py"
+npx mcp-watchtower scan --server "node dist/server.js"
+npx mcp-watchtower scan --server "uvx my-published-server"
 
 # CI mode — pass a tools manifest instead of spinning up a server
-npx mcp-lens scan --manifest ./tools.json
+npx mcp-watchtower scan --manifest ./tools.json
 
 # Flags
-npx mcp-lens scan --server "python my_server.py" --json          # JSON output
-npx mcp-lens scan --server "python my_server.py" --platform      # platform mode
-npx mcp-lens scan --server "python my_server.py" --max-tools 15  # custom threshold
-npx mcp-lens scan --server "python my_server.py" --name my-api   # custom server name
+npx mcp-watchtower scan --server "python my_server.py" --json          # JSON output
+npx mcp-watchtower scan --server "python my_server.py" --platform      # platform mode
+npx mcp-watchtower scan --server "python my_server.py" --max-tools 15  # custom threshold
+npx mcp-watchtower scan --server "python my_server.py" --name my-api   # custom server name
 ```
 
 ## Exit codes
@@ -38,7 +38,7 @@ npx mcp-lens scan --server "python my_server.py" --name my-api   # custom server
 ## Using as a library
 
 ```typescript
-import { StaticAnalyzer } from 'mcp-lens'
+import { StaticAnalyzer } from 'mcp-watchtower'
 
 const analyzer = new StaticAnalyzer({ platform: false, maxTools: 20 })
 const report = analyzer.analyze('my-server', tools)
@@ -49,7 +49,7 @@ console.log(report.findings)
 
 ```yaml
 - name: Lint MCP tools
-  run: npx mcp-lens scan --server "node dist/server.js" --json
+  run: npx mcp-watchtower scan --server "node dist/server.js" --json
 ```
 
 ## Platform mode
@@ -60,5 +60,5 @@ from informational to critical, since collisions are genuinely dangerous when
 multiple servers are loaded in the same context.
 
 ```bash
-npx mcp-lens scan --server "node dist/server.js" --platform
+npx mcp-watchtower scan --server "node dist/server.js" --platform
 ```

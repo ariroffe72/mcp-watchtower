@@ -1,12 +1,12 @@
 {
-  "name": "mcp-lens",
+  "name": "mcp-watchtower",
   "version": "0.1.0",
   "description": "Static analysis and compatibility checks for MCP servers",
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "bin": {
-    "mcp-lens": "./dist/cli/index.js"
+    "mcp-watchtower": "./dist/cli/index.js"
   },
   "files": [
     "dist/",

@@ -1,5 +1,5 @@
 {
-  "name": "mcp-lens-test-servers",
+  "name": "mcp-watchtower-test-servers",
   "version": "1.0.0",
   "type": "module",
   "private": true,
