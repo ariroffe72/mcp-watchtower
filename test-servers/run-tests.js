@@ -59,7 +59,7 @@ function goServer() {
   return `${CLI} scan --server "${binary}"`
 }
 
-console.log('\nmcp-lens end-to-end test suite')
+console.log('\nmcp-watchtower end-to-end test suite')
 console.log('='.repeat(40))
 
 // TypeScript servers

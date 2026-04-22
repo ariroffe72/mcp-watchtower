@@ -1,6 +1,6 @@
-# mcp-lens test servers
+# mcp-watchtower test servers
 
-Nine deliberately crafted MCP servers used to test mcp-lens end to end.
+Nine deliberately crafted MCP servers used to test mcp-watchtower end to end.
 Each server triggers specific findings (or no findings) when scanned.
 
 | Server | Language | Expected findings | Exit code |
@@ -17,7 +17,7 @@ Each server triggers specific findings (or no findings) when scanned.
 
 ## Prerequisites
 
-- **Node >= 18** — for TypeScript servers and the mcp-lens CLI
+- **Node >= 18** — for TypeScript servers and the mcp-watchtower CLI
 - **uv** — for Python servers (<https://docs.astral.sh/uv/>)
 - **Go >= 1.21** — for finance-mcp (<https://go.dev/dl/>)
 
@@ -45,7 +45,7 @@ npm run build:skip-go  # skip Go
 
 ## Run the test suite
 
-First build the main mcp-lens package (`npm run build` in the repo root), then:
+First build the main mcp-watchtower package (`npm run build` in the repo root), then:
 
 ```bash
 # Run everything
@@ -67,17 +67,17 @@ npm run test:skip-go  # skip Go server tests
 
 ## Manual scanning
 
-Any server can be scanned directly with the mcp-lens CLI:
+Any server can be scanned directly with the mcp-watchtower CLI:
 
 ```bash
 # TypeScript server
-mcp-lens scan --server "node clean-mcp/dist/index.js"
+mcp-watchtower scan --server "node clean-mcp/dist/index.js"
 
 # Python server (--directory tells uv which project virtualenv to use)
-mcp-lens scan --server "uv --directory param-conflicts-mcp run server.py"
+mcp-watchtower scan --server "uv --directory param-conflicts-mcp run server.py"
 
 # Go server (pre-compiled binary)
-mcp-lens scan --server "./finance-mcp/finance-mcp"
+mcp-watchtower scan --server "./finance-mcp/finance-mcp"
 ```
 
 ## Adding a new test server
