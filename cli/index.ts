@@ -3,10 +3,28 @@ import { Command } from 'commander'
 import { readFileSync } from 'fs'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { StaticAnalyzer } from '../src/index.js'
 import type { ToolSchema, Finding } from '../src/index.js'
+import chalk from 'chalk'
+import {
+  deriveServerNameFromCommand,
+  deriveServerNameFromUrl,
+  resolveInputMode,
+  type ScanInputOptions,
+} from './input.js'
 
 const program = new Command()
+
+function printBanner(options: { json?: boolean }) {
+  if (options.json) return
+  console.log(chalk.green(`
+  ╔══════════════════════════╗
+  ║   ⊕  MCP-WATCHTOWER  ⊕  ║
+  ║  shadow · params · names ║
+  ╚══════════════════════════╝
+`))
+}
 
 program
   .name('mcp-watchtower')
@@ -17,13 +35,16 @@ program
   .command('scan')
   .description('Scan an MCP server for tool conflicts and compatibility issues')
   .option('-s, --server <command>', 'command to start the MCP server process')
+  .option('-r, --remote <url>',      'remote MCP endpoint URL (e.g. https://api.example.com/mcp)')
+  .option('-t, --auth-token <token>', 'bearer token for --remote MCP endpoint')
   .option('-m, --manifest <path>',  'path to a JSON file containing tools (CI fallback)')
   .option('-n, --name <name>',      'server name for the report')
   .option('-j, --json',             'output results as JSON')
   .option('-p, --platform',         'platform mode: elevates name collision severity to critical')
   .option('--max-tools <number>',   'maximum tools before warning (default: 20)', '20')
-  .action(async (options) => {
+  .action(async (options: ScanOptions) => {
     try {
+      printBanner(options)
       const { tools, serverName } = await resolveTools(options)
       const analyzer = new StaticAnalyzer({
         platform: !!options.platform,
@@ -47,46 +68,48 @@ program.parse()
 
 async function resolveTools(options: {
   server?: string
+  remote?: string
+  authToken?: string
   manifest?: string
   name?: string
 }): Promise<{ tools: ToolSchema[]; serverName: string }> {
-  // Mode 1: live server process
-  if (options.server) {
-    const tools = await fetchToolsFromServer(options.server)
-    const serverName = options.name ?? deriveServerName(options.server)
+  const mode = resolveInputMode(options, !!process.stdin.isTTY)
+
+  if (mode === 'server') {
+    const command = options.server!
+    const tools = await fetchToolsFromLocalServer(command)
+    const serverName = options.name ?? deriveServerNameFromCommand(command)
     return { tools, serverName }
   }
-  // Mode 2: manifest file
-  if (options.manifest) {
-    const tools = parseToolsJson(readFileSync(options.manifest, 'utf-8'))
+
+  if (mode === 'remote') {
+    const endpoint = options.remote!
+    const token = options.authToken!
+    const tools = await fetchToolsFromRemoteServer(endpoint, token)
+    const serverName = options.name ?? deriveServerNameFromUrl(endpoint)
+    return { tools, serverName }
+  }
+
+  if (mode === 'manifest') {
+    const tools = parseToolsJson(readFileSync(options.manifest!, 'utf-8'))
     const serverName = options.name ?? 'unknown-server'
     return { tools, serverName }
   }
-  // Mode 3: stdin
-  if (!process.stdin.isTTY) {
-    const raw = await readStdin()
-    const tools = parseToolsJson(raw)
-    const serverName = options.name ?? 'unknown-server'
-    return { tools, serverName }
-  }
-  throw new Error(
-    'No input provided. Examples:\n\n' +
-    '  npx mcp-watchtower scan --server "python my_server.py"\n' +
-    '  npx mcp-watchtower scan --server "node dist/server.js"\n' +
-    '  npx mcp-watchtower scan --manifest ./tools.json\n'
-  )
+
+  const raw = await readStdin()
+  const tools = parseToolsJson(raw)
+  const serverName = options.name ?? 'unknown-server'
+  return { tools, serverName }
 }
 
-function deriveServerName(command: string): string {
-  // "python my_server.py" → "my_server"
-  // "node dist/server.js" → "server"
-  // "uvx my-published-server" → "my-published-server"
-  const parts = command.trim().split(/\s+/)
-  const last = parts[parts.length - 1]
-  return last.replace(/\.[^.]+$/, '').split('/').pop() ?? 'unknown-server'
+interface ScanOptions extends ScanInputOptions {
+  name?: string
+  json?: boolean
+  platform?: boolean
+  maxTools: string
 }
 
-async function fetchToolsFromServer(command: string): Promise<ToolSchema[]> {
+async function fetchToolsFromLocalServer(command: string): Promise<ToolSchema[]> {
   const parts = command.trim().split(/\s+/)
   const cmd = parts[0]
   const args = parts.slice(1)
@@ -106,7 +129,7 @@ async function fetchToolsFromServer(command: string): Promise<ToolSchema[]> {
   try {
     await client.connect(transport)
     const response = await client.listTools()
-    await client.close()
+    await closeClient(client)
     process.stderr.write(`Found ${response.tools.length} tools\n\n`)
     return response.tools.map(t => ({
       name: t.name,
@@ -114,12 +137,63 @@ async function fetchToolsFromServer(command: string): Promise<ToolSchema[]> {
       inputSchema: t.inputSchema as ToolSchema['inputSchema'],
     }))
   } catch (err) {
-    try { await client.close() } catch {}
+    await closeClient(client)
     throw new Error(
       `Failed to connect to server "${command}".\n` +
       `Make sure the command starts a valid MCP server.\n` +
       `Details: ${(err as Error).message}`
     )
+  }
+}
+
+async function fetchToolsFromRemoteServer(endpoint: string, token: string): Promise<ToolSchema[]> {
+  let url: URL
+  try {
+    url = new URL(endpoint)
+  } catch {
+    throw new Error(`Invalid remote URL "${endpoint}". Expected a full URL like https://api.example.com/mcp`)
+  }
+
+  process.stderr.write(`Connecting to remote server: ${url.toString()}\n`)
+
+  const transport = new StreamableHTTPClientTransport(url, {
+    requestInit: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  })
+
+  const client = new Client(
+    { name: 'mcp-watchtower', version: '0.1.0' },
+    { capabilities: {} }
+  )
+
+  try {
+    await client.connect(transport)
+    const response = await client.listTools()
+    await closeClient(client)
+    process.stderr.write(`Found ${response.tools.length} tools\n\n`)
+    return response.tools.map(t => ({
+      name: t.name,
+      description: t.description ?? '',
+      inputSchema: t.inputSchema as ToolSchema['inputSchema'],
+    }))
+  } catch (err) {
+    await closeClient(client)
+    throw new Error(
+      `Failed to connect to remote MCP endpoint "${endpoint}".\n` +
+      `Make sure the endpoint is reachable and the bearer token is valid.\n` +
+      `Details: ${(err as Error).message}`
+    )
+  }
+}
+
+async function closeClient(client: Client): Promise<void> {
+  try {
+    await client.close()
+  } catch (err) {
+    process.stderr.write(`Warning: failed to close MCP client: ${(err as Error).message}\n`)
   }
 }
 

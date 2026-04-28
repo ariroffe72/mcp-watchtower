@@ -15,10 +15,13 @@ in seconds.
 ## Usage
 
 ```bash
-# Point at any running MCP server
+# Local MCP server over stdio
 npx mcp-watchtower scan --server "python my_server.py"
 npx mcp-watchtower scan --server "node dist/server.js"
 npx mcp-watchtower scan --server "uvx my-published-server"
+
+# Remote MCP server over HTTP with bearer auth
+npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN"
 
 # CI mode — pass a tools manifest instead of spinning up a server
 npx mcp-watchtower scan --manifest ./tools.json
@@ -28,6 +31,7 @@ npx mcp-watchtower scan --server "python my_server.py" --json          # JSON ou
 npx mcp-watchtower scan --server "python my_server.py" --platform      # platform mode
 npx mcp-watchtower scan --server "python my_server.py" --max-tools 15  # custom threshold
 npx mcp-watchtower scan --server "python my_server.py" --name my-api   # custom server name
+npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN" --name prod-api
 ```
 
 ## Exit codes
