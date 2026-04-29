@@ -14,7 +14,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').copyFileSync('src/analyzers/shadow-patterns.json', 'dist/src/analyzers/shadow-patterns.json')\"",
+    "build": "tsc && node -e \"const fs=require('fs'); fs.copyFileSync('src/analyzers/shadow-patterns.json', 'dist/src/analyzers/shadow-patterns.json'); fs.cpSync('dist/src/crawler', 'dist/crawler', { recursive: true });\"",
+    "crawl": "node --env-file=.env dist/crawler/run.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test"
