@@ -7,7 +7,7 @@ Analyze MCP servers for naming, routing, and semantic tool conflicts.
 - **static findings** for duplicate names, naming inconsistencies, parameter conflicts, shadow patterns, and oversized tool surfaces
 - **semantic findings** for tools that already exist in the broader MCP corpus or are likely to overlap with existing tools
 
-![Index refresh](https://github.com/ariroffe72/mcp-watchtower/.github/workflows/refresh-index.yml/badge.svg)
+![Index refresh](https://github.com/ariroffe72/mcp-watchtower/actions/workflows/refresh-index.yml/badge.svg)
 ![Index updated](https://img.shields.io/badge/dynamic/json?url=https://pub-0eeb51ca45a14ebe89372cca3f4bea7f.r2.dev/manifest.json&query=$.version&label=index%20updated&color=blue)
 
 ## Install
@@ -101,3 +101,4 @@ npm run publish-index
 ```
 
 `publish-index` rebuilds the corpus, embeddings, and semantic index, then uploads the refreshed assets and manifest to Cloudflare R2. The nightly GitHub Actions workflow at `.github/workflows/refresh-index.yml` runs the same publish step automatically.
+
