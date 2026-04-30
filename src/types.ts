@@ -38,3 +38,21 @@ export interface StaticAnalyzerConfig {
   /** Warn when tool count exceeds this threshold. Default: 20 */
   maxTools?: number
 }
+
+export interface SemanticFinding {
+  severity: 'warning' | 'info'
+  code: 'SEMANTIC_OVERLAP' | 'ALREADY_IN_CORPUS'
+  tool: string
+  matchedTool: string
+  matchedServer: string
+  matchedDisplayName: string
+  similarity: number
+  message: string
+}
+
+export interface SemanticReport {
+  server: string
+  toolCount: number
+  findings: SemanticFinding[]
+  scannedAt: string
+}

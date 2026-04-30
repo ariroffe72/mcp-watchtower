@@ -4,6 +4,9 @@ Static analysis for MCP (Model Context Protocol) servers. Point it at any MCP
 server — TypeScript, Python, Go, anything — and get a full compatibility report
 in seconds.
 
+![Index refresh](https://github.com/ariroffe72/mcp-watchtower/.github/workflows/refresh-index.yml/badge.svg)
+![Index updated](https://img.shields.io/badge/dynamic/json?url=https://pub-0eeb51ca45a14ebe89372cca3f4bea7f.r2.dev/manifest.json&query=$.version&label=index%20updated&color=blue)
+
 ## What it checks
 
 - **Duplicate tool names** — two tools in the same server with the same name

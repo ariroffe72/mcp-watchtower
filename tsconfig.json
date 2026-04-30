@@ -8,5 +8,5 @@
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["src/**/*", "cli/**/*"]
+  "include": ["src/**/*", "cli/**/*", "scripts/**/*"]
 }

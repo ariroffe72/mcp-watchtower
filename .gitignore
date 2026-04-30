@@ -4,3 +4,4 @@ dist/
 *.tsbuildinfo
 .env
 src/data/corpus.json
+src/data/embeddings.json
