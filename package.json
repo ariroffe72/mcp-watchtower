@@ -16,11 +16,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && node -e \"const fs=require('fs'); const sleep=(ms)=>Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,ms); const replaceDir=(source,target)=>{ for(let attempt=0; attempt<20; attempt+=1){ try { fs.rmSync(target,{recursive:true,force:true}); fs.cpSync(source,target,{recursive:true}); return; } catch(error){ if(attempt===19){ throw error; } sleep(100); } } }; fs.copyFileSync('src/analyzers/shadow-patterns.json', 'dist/src/analyzers/shadow-patterns.json'); for (const dir of ['analyzers','crawler','embeddings','index-builder']) { const source=`dist/src/${dir}`; const target=`dist/${dir}`; if (fs.existsSync(source)) { replaceDir(source, target); } }\"",
-    "crawl": "node --env-file=.env dist/crawler/run.js",
-    "embed": "node dist/embeddings/run.js",
+    "build": "npm run build:ts && npm run build:postbuild",
+    "build:ts": "tsc",
+    "build:postbuild": "node scripts/postbuild.mjs",
+    "crawl": "node --env-file=.env dist/src/crawler/run.js",
+    "embed": "node dist/src/embeddings/run.js",
     "crawl-and-embed": "npm run crawl && npm run embed",
-    "build-index": "node dist/index-builder/run.js",
+    "build-index": "node dist/src/index-builder/run.js",
     "full-build": "npm run crawl && npm run embed && npm run build-index",
     "publish-index": "node --env-file=.env dist/scripts/publish-index.js",
     "test": "vitest run",
