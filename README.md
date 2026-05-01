@@ -93,6 +93,7 @@ const semanticReport = await new SemanticAnalyzer().analyze('my-server', tools)
 ```bash
 npm run build
 npm test
+npm run pack:check
 npm run crawl
 npm run embed
 npm run build-index
@@ -108,4 +109,61 @@ node dist/cli/index.js scan --server "uvx my-server"
 ```
 
 `publish-index` rebuilds the corpus, embeddings, and semantic index, then uploads the refreshed assets and manifest to Cloudflare R2. The nightly GitHub Actions workflow at `.github/workflows/refresh-index.yml` runs the same publish step automatically.
+
+## Releasing the package
+
+`mcp-watchtower` should be released with Changesets, separate from the semantic index refresh pipeline.
+
+1. Add a changeset in the same PR as any user-visible package change:
+
+   ```bash
+   npm run changeset
+   ```
+
+2. Merge the PR into `main`.
+3. The `release.yml` workflow will open or update a `chore: release package` PR with the version bump and changelog changes.
+4. Merge that release PR to publish the package to npm and create the matching GitHub Release.
+
+### First-time setup
+
+1. Create an npm access token that can publish `mcp-watchtower`.
+2. Save it as the repository secret `NPM_TOKEN`.
+3. Ensure the package name is available on npm and that the publishing account has access to it.
+4. Let GitHub Actions handle tags and GitHub Releases through the built-in `GITHUB_TOKEN`.
+
+### Release requirements
+
+- Repository secret: `NPM_TOKEN` with permission to publish `mcp-watchtower`
+- Built-in `GITHUB_TOKEN` handles the release PR, tags, and GitHub Release creation
+
+### When to add a changeset
+
+- Add a normal changeset for any user-visible change to behavior, CLI flags, shipped assets, or public library APIs.
+- If a PR should merge without producing a release, run:
+
+  ```bash
+  npx changeset --empty
+  ```
+
+  That records intentional "no release" work so reviewers and automation do not have to guess.
+
+### Local release validation
+
+Before publishing manually or debugging the workflow locally, validate the release artifact with:
+
+```bash
+npm run build
+npm test
+npm run pack:check
+```
+
+### If a release fails
+
+- If the workflow fails before publishing to npm, fix the issue on `main`; the release PR will be regenerated or updated automatically.
+- If npm publish fails because of auth or registry configuration, fix `NPM_TOKEN` or package permissions and rerun the workflow.
+- If a version was tagged but npm did not receive the package, inspect the failed Actions logs before retrying so you do not attempt to republish an existing version.
+
+## Semantic index releases
+
+The semantic index is intentionally released on its own cadence. `.github/workflows/refresh-index.yml` continues to rebuild and publish the Cloudflare R2 assets independently of npm package releases.
 
