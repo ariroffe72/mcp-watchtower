@@ -10,40 +10,39 @@ Analyze MCP servers for naming, routing, and semantic tool conflicts.
 ![Index refresh](https://github.com/ariroffe72/mcp-watchtower/actions/workflows/refresh-index.yml/badge.svg)
 ![Index updated](https://img.shields.io/badge/dynamic/json?url=https://pub-0eeb51ca45a14ebe89372cca3f4bea7f.r2.dev/manifest.json&query=$.version&label=index%20updated&color=blue)
 
-## Install
+## Quick start
 
 ```bash
-npm install
-npm run build
+npx mcp-watchtower scan --server "uvx my-server"
 ```
 
 ## CLI
 
 ```bash
 # Local MCP server over stdio
-node dist/cli/index.js scan --server "uvx my-server"
+npx mcp-watchtower scan --server "uvx my-server"
 
 # Remote MCP endpoint
-node dist/cli/index.js scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN"
+npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN"
 
 # Manifest / CI input
-node dist/cli/index.js scan --manifest ./tools.json --name my-server
+npx mcp-watchtower scan --manifest ./tools.json --name my-server
 ```
 
 ### Useful flags
 
 ```bash
 # JSON output
-node dist/cli/index.js scan --server "uvx my-server" --json
+npx mcp-watchtower scan --server "uvx my-server" --json
 
 # Treat static name collisions as critical
-node dist/cli/index.js scan --server "uvx my-server" --platform
+npx mcp-watchtower scan --server "uvx my-server" --platform
 
 # Semantic overlap detection against the corpus index
-node dist/cli/index.js scan --server "uvx my-server" --semantic
+npx mcp-watchtower scan --server "uvx my-server" --semantic
 
 # Tune semantic sensitivity
-node dist/cli/index.js scan --server "uvx my-server" --semantic --threshold 0.8
+npx mcp-watchtower scan --server "uvx my-server" --semantic --threshold 0.8
 ```
 
 ## What it checks
@@ -98,6 +97,14 @@ npm run crawl
 npm run embed
 npm run build-index
 npm run publish-index
+```
+
+If you're working from a local clone instead of npm, build first and run the compiled CLI directly:
+
+```bash
+npm install
+npm run build
+node dist/cli/index.js scan --server "uvx my-server"
 ```
 
 `publish-index` rebuilds the corpus, embeddings, and semantic index, then uploads the refreshed assets and manifest to Cloudflare R2. The nightly GitHub Actions workflow at `.github/workflows/refresh-index.yml` runs the same publish step automatically.
