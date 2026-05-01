@@ -5,3 +5,4 @@ dist/
 .env
 src/data/corpus.json
 src/data/embeddings.json
+.mintlify/
