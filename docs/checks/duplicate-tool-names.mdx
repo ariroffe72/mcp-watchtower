@@ -1,0 +1,87 @@
+---
+title: "Duplicate tool name detection"
+description: "MCP Watchtower raises a critical finding when two tools in the same server share a name, preventing silent LLM routing failures at runtime."
+---
+
+When an MCP server exposes two tools with the same name, the model has no reliable way to distinguish between them. Depending on the client, the second definition may silently shadow the first, both may be offered to the model causing random selection, or the server may reject the manifest outright. MCP Watchtower catches this at analysis time so you never reach that state in production.
+
+## Finding details
+
+| Field | Value |
+| ----- | ----- |
+| **Code** | `DUPLICATE_TOOL_NAME` |
+| **Severity** | `critical` |
+| **`tool` field** | The duplicated name |
+| **`relatedTool` field** | Not set |
+
+<Warning>
+  This is the only check that produces `critical` findings by default. Duplicate tool names represent a structural defect in your server manifest and should be resolved before you deploy or connect any client.
+</Warning>
+
+## What triggers it
+
+The check counts how many times each tool name appears in the array you pass to `analyze()`. Any name that appears more than once generates one finding per duplicate name — not one finding per extra occurrence.
+
+## Example
+
+Suppose your server registers the following tools:
+
+```json
+[
+  {
+    "name": "get_price",
+    "description": "Returns the current price of a stock.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticker": { "type": "string", "description": "Stock ticker symbol" }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "get_price",
+    "description": "Returns the price history for a stock over a date range.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticker": { "type": "string" },
+        "days":   { "type": "number" }
+      }
+    }
+  }
+]
+```
+
+MCP Watchtower produces the following finding:
+
+```json
+{
+  "severity": "critical",
+  "code": "DUPLICATE_TOOL_NAME",
+  "tool": "get_price",
+  "message": "Tool name 'get_price' is defined 2 times in this server"
+}
+```
+
+## How to fix it
+
+Rename one of the conflicting tools so every name in the server is unique. A good approach is to make the name more specific:
+
+<CodeGroup>
+
+```json before
+{ "name": "get_price", "description": "Returns the current price of a stock." }
+{ "name": "get_price", "description": "Returns price history for a stock." }
+```
+
+```json after
+{ "name": "get_current_price",  "description": "Returns the current price of a stock." }
+{ "name": "get_price_history",  "description": "Returns price history for a stock." }
+```
+
+</CodeGroup>
+
+<Tip>
+  If you are running multiple MCP servers simultaneously, enable the `platform` config option. It elevates name collisions across servers to `critical` as well, catching cross-server shadowing that a per-server check would miss.
+</Tip>

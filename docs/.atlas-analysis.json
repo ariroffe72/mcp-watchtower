@@ -1,0 +1,95 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "MCP Watchtower",
+  "projectDescription": "A static analysis CLI and library that scans MCP (Model Context Protocol) servers for tool naming conflicts, parameter inconsistencies, shadow patterns, and compatibility issues before they reach production.",
+  "theme": "luma",
+  "primaryColor": "#2563EB",
+  "lightColor": "#EFF6FF",
+  "darkColor": "#1E3A8A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli/scan",
+              "cli/flags",
+              "cli/exit-codes"
+            ]
+          },
+          {
+            "group": "Checks",
+            "pages": [
+              "checks/overview",
+              "checks/duplicate-tool-names",
+              "checks/naming-conventions",
+              "checks/parameter-conflicts",
+              "checks/shadow-patterns",
+              "checks/tool-count"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/ci-integration",
+              "guides/platform-mode",
+              "guides/manifest-mode"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Library",
+            "pages": [
+              "api/overview",
+              "api/static-analyzer",
+              "api/types"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Duplicate tool name detection across MCP server definitions",
+    "Naming convention consistency checks (snake_case, camelCase, kebab-case)",
+    "Parameter conflict detection using synonym groups",
+    "Shadow pattern scanning to detect LLM tool-routing manipulation",
+    "Tool count threshold warnings for LLM routing accuracy",
+    "Local stdio server scanning (Python, Node.js, Go, any language)",
+    "Remote HTTP MCP server scanning with bearer auth",
+    "CI manifest mode for offline JSON-based analysis",
+    "JSON output mode for programmatic consumption",
+    "Platform mode for multi-server orchestrator environments",
+    "Zero LLM calls — fully deterministic, offline analysis",
+    "TypeScript library API for embedding in your own tooling"
+  ],
+  "publicApiSurface": [
+    "npx mcp-watchtower scan --server <command>",
+    "npx mcp-watchtower scan --remote <url> --auth-token <token>",
+    "npx mcp-watchtower scan --manifest <path>",
+    "npx mcp-watchtower scan --json",
+    "npx mcp-watchtower scan --platform",
+    "npx mcp-watchtower scan --max-tools <number>",
+    "npx mcp-watchtower scan --name <name>",
+    "StaticAnalyzer class (TypeScript/Node.js library)",
+    "StaticAnalyzer.analyze(serverName, tools): StaticReport",
+    "ToolSchema interface",
+    "Finding interface",
+    "StaticReport interface",
+    "StaticAnalyzerConfig interface"
+  ]
+}

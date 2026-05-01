@@ -1,0 +1,51 @@
+---
+title: "What is MCP Watchtower?"
+description: "MCP Watchtower scans your MCP server's tool definitions for problems that silently degrade LLM routing — with no LLM calls required."
+---
+
+MCP Watchtower is a static analysis tool for [Model Context Protocol](https://modelcontextprotocol.io) servers. You point it at any MCP server — written in TypeScript, Python, Go, or anything else — and it returns a full compatibility report in seconds. It works by connecting to your server, fetching the tool manifest, and running a set of deterministic checks entirely offline. No LLM calls are made, and no traffic is intercepted.
+
+## Why it matters
+
+LLM tool routing is sensitive to the shape of your tool definitions. Problems like duplicate tool names, inconsistent naming conventions, and manipulative description text can silently cause the model to pick the wrong tool, skip a tool entirely, or behave unpredictably in ways that are hard to debug. MCP Watchtower catches these problems before they reach production.
+
+## What it checks
+
+MCP Watchtower runs five checks against your tool definitions:
+
+<CardGroup cols={2}>
+  <Card title="Duplicate tool names" icon="copy" href="/checks/duplicate-tool-names">
+    Two tools in the same server with the same name causes unpredictable routing behavior.
+  </Card>
+  <Card title="Naming convention inconsistency" icon="spell-check" href="/checks/naming-conventions">
+    Mixing `snake_case`, `camelCase`, and `kebab-case` across tools confuses models trained on consistent patterns.
+  </Card>
+  <Card title="Parameter conflicts" icon="arrows-left-right" href="/checks/parameter-conflicts">
+    Using `ticker` in one tool and `symbol` in another for the same concept creates ambiguity across tool calls.
+  </Card>
+  <Card title="Shadow patterns" icon="eye-slash" href="/checks/shadow-patterns">
+    Description language that hijacks LLM tool routing or suppresses other tools in the same server.
+  </Card>
+  <Card title="Tool count" icon="list-check" href="/checks/tool-count">
+    Routing accuracy degrades when a server exposes more than roughly 20 tools. Watchtower flags servers that exceed the threshold.
+  </Card>
+</CardGroup>
+
+## Key features
+
+- **Works with any MCP server** — connect over stdio to a local process, or over HTTP to a remote endpoint
+- **CI-ready** — exit code `1` on any critical finding makes it a clean pipeline gate
+- **No install required** — run immediately with `npx mcp-watchtower scan`
+- **JSON output** — pass `--json` for machine-readable results you can pipe to other tools
+- **Platform mode** — elevates name collision severity to critical when you're building an orchestrator that loads multiple servers simultaneously
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Scan your first MCP server in under a minute using npx — no install required.
+  </Card>
+  <Card title="What it checks" icon="shield-check" href="/checks/overview">
+    Detailed reference for every check Watchtower runs and when each fires.
+  </Card>
+</CardGroup>

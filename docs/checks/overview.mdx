@@ -1,0 +1,91 @@
+---
+title: "What MCP Watchtower checks for"
+description: "A reference to the five static checks MCP Watchtower runs against your tool definitions — from critical naming collisions to shadow pattern detection."
+---
+
+MCP Watchtower runs five deterministic checks against your server's tool definitions every time you invoke the analyzer. None of the checks require an LLM or a network connection — they are all computed locally from the tool schema you provide. The checks cover structural problems (duplicate names, too many tools), consistency problems (naming conventions, parameter conflicts), and security problems (shadow patterns). Each check produces zero or more findings with a severity of `critical` or `warning`.
+
+## All checks at a glance
+
+<CardGroup cols={2}>
+  <Card
+    title="Duplicate tool name detection"
+    icon="copy"
+    href="/checks/duplicate-tool-names"
+  >
+    **Severity: critical**
+
+    Flags any tool name that appears more than once in the same server. Duplicate names cause unpredictable LLM routing and must be resolved before deployment.
+  </Card>
+  <Card
+    title="Naming convention consistency"
+    icon="text-cursor-input"
+    href="/checks/naming-conventions"
+  >
+    **Severity: warning**
+
+    Detects mixing of `snake_case`, `camelCase`, and `kebab-case` across tool names. The majority style wins; outliers are flagged.
+  </Card>
+  <Card
+    title="Parameter conflict detection"
+    icon="arrows-left-right"
+    href="/checks/parameter-conflicts"
+  >
+    **Severity: warning**
+
+    Identifies tools that use different parameter names for the same concept — for example, one tool using `ticker` while another uses `symbol`. Uses built-in synonym groups.
+  </Card>
+  <Card
+    title="Shadow pattern detection"
+    icon="eye-off"
+    href="/checks/shadow-patterns"
+  >
+    **Severity: warning or critical**
+
+    Scans tool descriptions for text that manipulates LLM tool-routing decisions, such as instructions to always call a tool first or to ignore other tools.
+  </Card>
+  <Card
+    title="Tool count threshold warning"
+    icon="hash"
+    href="/checks/tool-count"
+  >
+    **Severity: warning**
+
+    Warns when the total number of tools in a server exceeds the recommended maximum (default: 20), where LLM routing accuracy is known to degrade.
+  </Card>
+</CardGroup>
+
+## Severity levels
+
+| Severity   | Meaning                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| `critical` | The problem will cause broken or undefined behavior. You should fix it before deploying. |
+| `warning`  | The problem degrades quality or consistency. You should fix it when practical.           |
+
+<Info>
+  The `info` severity level is reserved for future checks. No current check produces `info` findings.
+</Info>
+
+## Finding object shape
+
+Every check produces findings that share the same structure:
+
+```typescript
+interface Finding {
+  severity: 'critical' | 'warning' | 'info'
+  code: string       // machine-readable identifier, e.g. "DUPLICATE_TOOL_NAME"
+  message: string    // human-readable explanation
+  tool?: string      // name of the tool that triggered this finding
+  relatedTool?: string // second tool involved, for conflict findings
+}
+```
+
+## Check summary table
+
+| Check | Finding code | Severity | Triggered by |
+| ----- | ------------ | -------- | ------------ |
+| [Duplicate tool names](/checks/duplicate-tool-names) | `DUPLICATE_TOOL_NAME` | critical | Two or more tools share the same name |
+| [Naming conventions](/checks/naming-conventions) | `NAMING_CONVENTION` | warning | A tool name uses a non-majority casing style |
+| [Parameter conflicts](/checks/parameter-conflicts) | `PARAMETER_CONFLICT` | warning | Two tools use different names for the same parameter concept |
+| [Shadow patterns](/checks/shadow-patterns) | `SHADOW_PATTERN` | warning / critical | A tool description contains a routing-manipulation pattern |
+| [Tool count](/checks/tool-count) | `TOOL_COUNT_WARNING` | warning | Total tool count exceeds the configured maximum |

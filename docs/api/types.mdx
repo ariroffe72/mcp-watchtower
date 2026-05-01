@@ -1,0 +1,208 @@
+---
+title: "TypeScript types and interfaces reference"
+description: "Complete reference for every TypeScript type exported by mcp-watchtower: ToolSchema, Finding, StaticReport, and StaticAnalyzerConfig."
+---
+
+`mcp-watchtower` exports four TypeScript interfaces. You can import any of them as types alongside the `StaticAnalyzer` class. This page documents every field, its type, and its meaning.
+
+```typescript
+import type { ToolSchema, Finding, StaticReport, StaticAnalyzerConfig } from 'mcp-watchtower'
+```
+
+---
+
+## ToolSchema
+
+`ToolSchema` represents a single tool as declared in an MCP server manifest. You construct an array of these and pass it to `analyzer.analyze()`.
+
+<ResponseField name="name" type="string" required>
+  The tool's unique identifier within the server. This is the value the LLM uses when selecting a tool to invoke.
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  A human- and model-readable description of what the tool does. The static analyzer scans this field for shadow patterns.
+</ResponseField>
+
+<ResponseField name="inputSchema" type="object">
+  JSON Schema–style definition of the tool's accepted parameters. Optional — tools with no parameters may omit this field.
+
+  <Expandable title="inputSchema properties">
+    <ResponseField name="inputSchema.type" type="string" required>
+      Always `"object"` per the MCP specification.
+    </ResponseField>
+    <ResponseField name="inputSchema.properties" type="Record<string, \{ type: string; description?: string \}>">
+      A map of parameter names to their type and optional description. The analyzer reads parameter names from this map when checking for `PARAMETER_CONFLICT` findings.
+    </ResponseField>
+    <ResponseField name="inputSchema.required" type="string[]">
+      Array of parameter names that the tool requires the caller to provide.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example:**
+
+```typescript
+const tool: ToolSchema = {
+  name: 'get_stock_price',
+  description: 'Fetch the latest price for a stock ticker.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      ticker: { type: 'string', description: 'Stock ticker symbol, e.g. AAPL' },
+      currency: { type: 'string', description: 'Currency code, e.g. USD' },
+    },
+    required: ['ticker'],
+  },
+}
+```
+
+---
+
+## Finding
+
+`Finding` represents a single issue produced by the analyzer. The `findings` array on `StaticReport` is a list of these.
+
+<ResponseField name="severity" type="'critical' | 'warning' | 'info'" required>
+  How serious the issue is. `critical` findings cause the CLI to exit with code `1`. Use this field to gate CI pipelines programmatically.
+</ResponseField>
+
+<ResponseField name="code" type="string" required>
+  Machine-readable identifier for the type of issue. See the [finding codes](#finding-codes) section below for all possible values.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable explanation of the finding, including the tool name and relevant context.
+</ResponseField>
+
+<ResponseField name="tool" type="string">
+  Name of the tool that triggered the finding. Present for all findings except `TOOL_COUNT_WARNING`, which is not scoped to a single tool.
+</ResponseField>
+
+<ResponseField name="relatedTool" type="string">
+  Name of the second tool involved in a conflict finding. Only present on `PARAMETER_CONFLICT` findings.
+</ResponseField>
+
+### Finding codes
+
+<AccordionGroup>
+  <Accordion title="DUPLICATE_TOOL_NAME">
+    **Default severity:** `critical`
+
+    Two or more tools in the same server share the same `name`. LLMs treat tool names as unique identifiers — duplicate names produce unpredictable routing behavior.
+
+    The `tool` field is set to the duplicated name. The `relatedTool` field is not set.
+
+    ```typescript
+    {
+      severity: 'critical',
+      code: 'DUPLICATE_TOOL_NAME',
+      message: "Tool name 'get_price' is defined 2 times in this server",
+      tool: 'get_price',
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="NAMING_CONVENTION">
+    **Default severity:** `warning`
+
+    A tool's name uses a different naming convention (snake_case, camelCase, or kebab-case) from the majority of other tools in the server. Inconsistent conventions make the tool manifest harder for models to reason about.
+
+    The `tool` field is set to the outlier tool name.
+
+    ```typescript
+    {
+      severity: 'warning',
+      code: 'NAMING_CONVENTION',
+      message: "Tool 'getStockPrice' uses camelCase but majority convention is snake_case",
+      tool: 'getStockPrice',
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="PARAMETER_CONFLICT">
+    **Default severity:** `warning`
+
+    Two tools use different parameter names for the same semantic concept — for example, `ticker` in one tool and `symbol` in another. The analyzer checks against a built-in list of synonym groups covering common patterns like identifiers, pagination, and date fields.
+
+    Both the `tool` and `relatedTool` fields are set.
+
+    ```typescript
+    {
+      severity: 'warning',
+      code: 'PARAMETER_CONFLICT',
+      tool: 'get_stock_price',
+      relatedTool: 'get_company_info',
+      message: "Parameter 'ticker' in 'get_stock_price' and 'symbol' in 'get_company_info' likely refer to the same concept — consider using consistent naming",
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SHADOW_PATTERN">
+    **Default severity:** `warning` or `critical` (depends on the matched pattern)
+
+    A tool's `description` contains language that can hijack LLM tool routing — for example, phrases that instruct the model to always prefer this tool or to ignore other tools. Severity is set by the matched pattern definition.
+
+    The `tool` field is set to the affected tool name.
+
+    ```typescript
+    {
+      severity: 'critical',
+      code: 'SHADOW_PATTERN',
+      tool: 'my_tool',
+      message: 'Tool "my_tool" contains forced-invocation pattern: "always use this tool when..."',
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="TOOL_COUNT_WARNING">
+    **Default severity:** `warning`
+
+    The server exposes more tools than the configured `maxTools` threshold (default: 20). Research shows LLM routing accuracy degrades above roughly 20 tools per server. Consider splitting a large server into smaller, focused sub-servers.
+
+    Neither `tool` nor `relatedTool` is set — this finding applies to the server as a whole.
+
+    ```typescript
+    {
+      severity: 'warning',
+      code: 'TOOL_COUNT_WARNING',
+      message: 'Server has 27 tools which exceeds the recommended maximum of 20. Consider splitting into focused sub-servers.',
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## StaticReport
+
+`StaticReport` is the object returned by `analyzer.analyze()`. It contains the full results of the analysis run.
+
+<ResponseField name="server" type="string" required>
+  The `serverName` argument you passed to `analyze()`.
+</ResponseField>
+
+<ResponseField name="toolCount" type="number" required>
+  The number of tools that were analyzed.
+</ResponseField>
+
+<ResponseField name="findings" type="Finding[]" required>
+  All findings produced across the five checks. An empty array means the server passed cleanly.
+</ResponseField>
+
+<ResponseField name="passedAt" type="string" required>
+  ISO 8601 timestamp of when the analysis completed, e.g. `"2024-11-15T09:32:00.123Z"`.
+</ResponseField>
+
+---
+
+## StaticAnalyzerConfig
+
+`StaticAnalyzerConfig` is the optional configuration object accepted by the `StaticAnalyzer` constructor.
+
+<ResponseField name="platform" type="boolean" default="false">
+  When `true`, elevates `DUPLICATE_TOOL_NAME` severity to `critical`. Use this when loading multiple MCP servers simultaneously into a shared context, where name collisions are dangerous rather than just inconvenient.
+</ResponseField>
+
+<ResponseField name="maxTools" type="number" default="20">
+  Tool count threshold for `TOOL_COUNT_WARNING`. A finding is emitted when `tools.length` exceeds this value.
+</ResponseField>

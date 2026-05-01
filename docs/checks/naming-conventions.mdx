@@ -1,0 +1,90 @@
+---
+title: "Naming convention consistency check"
+description: "MCP Watchtower warns when tool names mix snake_case, camelCase, or kebab-case, helping LLMs and developers reason about your tool set consistently."
+---
+
+Consistent naming makes a tool set easier for both a model and a human to reason about. When some tools use `snake_case` and others use `camelCase`, the model may treat them as belonging to different systems, and developers have to remember which style applies to which tool. MCP Watchtower detects mixed conventions and flags the outliers so you can bring everything in line.
+
+## Finding details
+
+| Field | Value |
+| ----- | ----- |
+| **Code** | `NAMING_CONVENTION` |
+| **Severity** | `warning` |
+| **`tool` field** | The name of the tool that uses a non-majority convention |
+| **`relatedTool` field** | Not set |
+
+## Supported conventions
+
+MCP Watchtower recognises three casing styles:
+
+| Convention | Example | Detection rule |
+| ---------- | ------- | -------------- |
+| `snake_case` | `get_stock_price` | Lowercase letters, digits, and underscores; at least one underscore |
+| `camelCase` | `getStockPrice` | Starts lowercase; contains at least one uppercase letter; no underscores or hyphens |
+| `kebab-case` | `get-stock-price` | Lowercase letters, digits, and hyphens; at least one hyphen |
+
+Names that do not match any of these patterns are classified as `unknown` and excluded from the majority vote.
+
+## The majority-wins algorithm
+
+1. Count how many tool names belong to each convention.
+2. The convention with the highest count is the majority. Ties are broken by this priority order: `snake_case` → `camelCase` → `kebab-case`.
+3. Any tool whose name belongs to a different, recognised convention is flagged.
+
+Tools whose names are classified as `unknown` (for example, a single-word name like `ping`) are neither counted toward the majority nor flagged as outliers.
+
+## Example
+
+Consider a server with these five tool names:
+
+```json
+[
+  { "name": "get_price",      "description": "..." },
+  { "name": "search_tickers", "description": "..." },
+  { "name": "list_watchlist", "description": "..." },
+  { "name": "addAlert",       "description": "..." },
+  { "name": "deleteAlert",    "description": "..." }
+]
+```
+
+The convention counts are: `snake_case` → 3, `camelCase` → 2. The majority is `snake_case`. MCP Watchtower produces one finding for each `camelCase` outlier:
+
+```json
+[
+  {
+    "severity": "warning",
+    "code": "NAMING_CONVENTION",
+    "tool": "addAlert",
+    "message": "Tool 'addAlert' uses camelCase but majority convention is snake_case"
+  },
+  {
+    "severity": "warning",
+    "code": "NAMING_CONVENTION",
+    "tool": "deleteAlert",
+    "message": "Tool 'deleteAlert' uses camelCase but majority convention is snake_case"
+  }
+]
+```
+
+## How to fix it
+
+Rename the flagged tools to match the majority convention. You do not need to rename the majority tools — only the outliers need to change.
+
+<CodeGroup>
+
+```json before
+{ "name": "addAlert" }
+{ "name": "deleteAlert" }
+```
+
+```json after
+{ "name": "add_alert" }
+{ "name": "delete_alert" }
+```
+
+</CodeGroup>
+
+<Note>
+  If you genuinely prefer `camelCase` for your entire server, rename the `snake_case` tools instead. MCP Watchtower does not prescribe a specific convention — it only requires that you pick one and apply it consistently.
+</Note>

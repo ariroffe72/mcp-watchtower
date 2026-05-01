@@ -1,0 +1,110 @@
+---
+title: "Platform mode for multi-server orchestrators"
+description: "Enable --platform when building an orchestrator or MCP registry. Name collisions are elevated to critical findings when servers share a tool namespace."
+---
+
+When you run a single MCP server in isolation, a name collision between two tools registered to different servers is a theoretical concern — your server only knows about its own tools. But when you build an agent orchestrator or an MCP registry that loads multiple servers simultaneously, those servers share a single tool namespace. A collision at that point is no longer informational; it is a real routing failure waiting to happen. Platform mode exists for this scenario.
+
+## What platform mode changes
+
+By default, MCP Watchtower reports name collision findings at `warning` or `info` severity. When you pass `--platform`, name collision findings are elevated to `critical` severity. Because exit code `1` is triggered by any critical finding, this makes collisions a hard failure in your CI pipeline.
+
+All other checks — naming conventions, parameter conflicts, shadow patterns, tool count — are unaffected by `--platform`. Only the severity of collision findings changes.
+
+<Note>
+Platform mode affects the **severity** of findings, not which checks run. You will still see the same set of findings with and without `--platform`; the difference is whether collisions block your pipeline.
+</Note>
+
+## When to use platform mode
+
+Enable `--platform` when any of the following applies to your project:
+
+<CardGroup cols={2}>
+  <Card title="Agent orchestrator" icon="network-wired">
+    You are building a system that routes LLM requests across multiple MCP servers loaded at the same time.
+  </Card>
+  <Card title="MCP registry" icon="server">
+    You maintain a catalog of MCP servers that end-users can combine into a single agent context.
+  </Card>
+  <Card title="Multi-server Claude Desktop config" icon="desktop">
+    Your `claude_desktop_config.json` (or equivalent) registers more than one MCP server.
+  </Card>
+  <Card title="Shared tool namespace" icon="share-nodes">
+    Any environment where tools from different servers are visible to the same LLM simultaneously.
+  </Card>
+</CardGroup>
+
+If you are scanning a single, standalone server with no plans to run it alongside other servers, you do not need `--platform`.
+
+## CLI usage
+
+Pass `--platform` (or `-p`) to any `scan` invocation:
+
+```bash
+npx mcp-watchtower scan --server "node dist/server.js" --platform
+```
+
+Combine it with `--json` for machine-readable output in CI:
+
+```bash
+npx mcp-watchtower scan --server "node dist/server.js" --platform --json
+```
+
+Use it with a remote server:
+
+```bash
+npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN" --platform
+```
+
+Or with a manifest file for offline scanning:
+
+```bash
+npx mcp-watchtower scan --manifest ./tools.json --platform
+```
+
+## Library API
+
+If you are using MCP Watchtower as a TypeScript library, pass `platform: true` when constructing the analyzer:
+
+```typescript
+import { StaticAnalyzer } from 'mcp-watchtower'
+
+const analyzer = new StaticAnalyzer({ platform: true })
+const report = analyzer.analyze('my-registry-server', tools)
+
+const collisions = report.findings.filter(f => f.code === 'DUPLICATE_TOOL_NAME')
+// In platform mode, these are severity: 'critical'
+console.log(collisions)
+```
+
+You can combine `platform` with a custom `maxTools` threshold:
+
+```typescript
+const analyzer = new StaticAnalyzer({ platform: true, maxTools: 15 })
+```
+
+## Understanding the output
+
+When a name collision is found in platform mode, the finding looks like this in human-readable output:
+
+```
+✖ CRITICAL [get_price]  DUPLICATE_TOOL_NAME
+  Two tools share the name "get_price".
+  Related tool: get_price
+```
+
+In JSON output (with `--json`), the same finding has `"severity": "critical"`:
+
+```json
+{
+  "severity": "critical",
+  "code": "DUPLICATE_TOOL_NAME",
+  "tool": "get_price",
+  "message": "Two tools share the name \"get_price\".",
+  "relatedTool": "get_price"
+}
+```
+
+<Warning>
+Name collisions in a shared tool namespace cause the LLM to route calls unpredictably between the two tools. In an orchestrator, this can silently invoke the wrong server without any error signal. Treat critical collision findings as regressions, not warnings.
+</Warning>

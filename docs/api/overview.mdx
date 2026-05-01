@@ -1,0 +1,112 @@
+---
+title: "MCP Watchtower TypeScript library overview"
+description: "Use mcp-watchtower as a Node.js or TypeScript library to run static analysis programmatically — embed it in scripts, registries, or custom CI tooling."
+---
+
+The `mcp-watchtower` package exposes a TypeScript API so you can run the same static analysis checks that power the CLI directly inside your own Node.js or TypeScript application. This is useful when you want to integrate analysis into a custom CI script, a registry that loads multiple MCP servers, or any tooling that already holds tool definitions in memory.
+
+## Installation
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install mcp-watchtower
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add mcp-watchtower
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add mcp-watchtower
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  `mcp-watchtower` requires Node.js 18 or later. The package ships ES modules only, so set `"type": "module"` in your `package.json` or use a `.mjs` extension.
+</Note>
+
+## Public exports
+
+The package surface is intentionally small. Everything you need is available from the top-level import.
+
+```typescript
+import { StaticAnalyzer } from 'mcp-watchtower'
+import type { ToolSchema, Finding, StaticReport, StaticAnalyzerConfig } from 'mcp-watchtower'
+```
+
+| Export | Kind | Description |
+|---|---|---|
+| `StaticAnalyzer` | Class | Runs all five static checks against a set of tool definitions. |
+| `ToolSchema` | Type | Shape of a single tool definition as declared in an MCP server manifest. |
+| `Finding` | Type | A single issue produced by the analyzer. |
+| `StaticReport` | Type | The full analysis result returned by `analyze()`. |
+| `StaticAnalyzerConfig` | Type | Configuration options passed to the `StaticAnalyzer` constructor. |
+
+## Quick example
+
+The following end-to-end example creates an analyzer, passes it a set of tool definitions, and prints any critical findings to the console.
+
+```typescript
+import { StaticAnalyzer } from 'mcp-watchtower'
+import type { ToolSchema } from 'mcp-watchtower'
+
+const tools: ToolSchema[] = [
+  {
+    name: 'get_stock_price',
+    description: 'Fetch the latest price for a stock ticker.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ticker: { type: 'string', description: 'Stock ticker symbol, e.g. AAPL' },
+      },
+      required: ['ticker'],
+    },
+  },
+  {
+    name: 'get_company_info',
+    description: 'Return company metadata for a given stock.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: { type: 'string', description: 'Stock ticker symbol' },
+      },
+      required: ['symbol'],
+    },
+  },
+]
+
+const analyzer = new StaticAnalyzer({ platform: false, maxTools: 20 })
+const report = analyzer.analyze('my-server', tools)
+
+const criticals = report.findings.filter(f => f.severity === 'critical')
+
+if (criticals.length > 0) {
+  console.error(`Analysis failed with ${criticals.length} critical finding(s):`)
+  for (const finding of criticals) {
+    console.error(`  [${finding.code}] ${finding.message}`)
+  }
+  process.exit(1)
+}
+
+console.log(`Analysis passed. ${report.findings.length} finding(s) total.`)
+console.log(report.findings)
+```
+
+<Tip>
+  The `PARAMETER_CONFLICT` finding in the example above flags `ticker` (in `get_stock_price`) and `symbol` (in `get_company_info`) as likely synonyms. Standardizing on one name across your server eliminates this warning.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="StaticAnalyzer class reference" icon="code" href="/api/static-analyzer">
+    Constructor options, the `analyze()` method signature, and the full `StaticReport` shape.
+  </Card>
+  <Card title="Types reference" icon="brackets-curly" href="/api/types">
+    Full documentation for every exported interface and type, including all finding codes.
+  </Card>
+</CardGroup>

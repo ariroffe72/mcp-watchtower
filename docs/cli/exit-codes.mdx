@@ -1,0 +1,125 @@
+---
+title: "Exit codes — using mcp-watchtower as a CI gate"
+description: "mcp-watchtower scan exits with code 0 for no critical findings and code 1 when critical findings are detected — a clean, zero-config signal for CI pipelines."
+---
+
+The `scan` command exits with a numeric code that reflects the highest severity finding in the report. You can use this code as a quality gate in any CI system without parsing the output: a non-zero exit from `mcp-watchtower scan` means at least one critical issue was found and the pipeline should fail.
+
+## Exit code reference
+
+| Code | Meaning |
+|------|---------|
+| `0` | The scan completed and found no critical findings. Warnings and informational findings may still be present in the output. |
+| `1` | The scan completed and found one or more critical findings, **or** the command encountered an error (bad flag combination, unreachable server, unparseable JSON, etc.). |
+
+<Note>
+  Only `critical`-severity findings trigger exit code `1`. `warning` and `info` findings are reported in the output but do not affect the exit code.
+</Note>
+
+## What produces a critical finding
+
+By default, the checks that can produce critical findings are:
+
+- **Duplicate tool names** — two tools in the same server share an identical name.
+- **Shadow patterns** — a tool description contains language designed to hijack LLM tool routing.
+
+With `--platform` enabled, name collisions are also elevated to critical, because they are genuinely dangerous when multiple servers share a single tool namespace.
+
+## Using exit codes as a CI gate
+
+Because `scan` exits with `1` on any critical finding, you can drop it directly into any shell-based pipeline step without wrapping it in conditional logic.
+
+### GitHub Actions
+
+<Steps>
+  <Step title="Add the scan step to your workflow">
+    Add a step that runs `mcp-watchtower scan` against your server's built output. The step will fail automatically if the exit code is `1`.
+
+    ```yaml
+    - name: Scan MCP tools
+      run: npx mcp-watchtower scan --server "node dist/server.js"
+    ```
+  </Step>
+  <Step title="Optionally capture JSON output as an artifact">
+    Pass `--json` and redirect stdout to a file to store the full report as a workflow artifact.
+
+    ```yaml
+    - name: Scan MCP tools
+      run: npx mcp-watchtower scan --server "node dist/server.js" --json > mcp-report.json
+
+    - name: Upload scan report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-watchtower-report
+        path: mcp-report.json
+    ```
+  </Step>
+  <Step title="Use continue-on-error if you want warnings without blocking">
+    If you want to surface findings without blocking the pipeline during an initial rollout, set `continue-on-error: true`. Remove it once you are ready to enforce the gate.
+
+    ```yaml
+    - name: Scan MCP tools (non-blocking)
+      run: npx mcp-watchtower scan --server "node dist/server.js"
+      continue-on-error: true
+    ```
+  </Step>
+</Steps>
+
+### Full GitHub Actions example
+
+```yaml
+name: MCP quality gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  mcp-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server
+        run: npm run build
+
+      - name: Scan MCP tools
+        run: npx mcp-watchtower scan --server "node dist/server.js" --json
+```
+
+<Tip>
+  Run the scan after your build step so that the server binary Watchtower connects to reflects the code being merged. Scanning a stale build defeats the purpose of the gate.
+</Tip>
+
+### Manifest mode (no live server required)
+
+If your CI environment cannot start a live server, export the tools manifest during the build and scan that instead. Exit code behaviour is identical.
+
+```yaml
+- name: Export tool manifest
+  run: node scripts/export-tools.js > tools.json
+
+- name: Scan MCP tools
+  run: npx mcp-watchtower scan --manifest tools.json
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="scan command" icon="terminal" href="/cli/scan">
+    Full reference for the scan command and all input modes.
+  </Card>
+  <Card title="Flags reference" icon="sliders" href="/cli/flags">
+    Documentation for every flag, including --platform and --json.
+  </Card>
+</CardGroup>

@@ -1,0 +1,83 @@
+---
+title: "Tool count threshold warning"
+description: "MCP Watchtower warns when a server exposes more tools than the recommended maximum, where research shows LLM routing accuracy starts to degrade."
+---
+
+When a model is presented with a large number of tools, its ability to select the correct one for a given task decreases. This is not a hard failure — the model does not crash or refuse — but routing accuracy degrades gradually as the tool list grows. MCP Watchtower warns you when your server crosses the configurable threshold so you can take action before this affects your users.
+
+## Finding details
+
+| Field | Value |
+| ----- | ----- |
+| **Code** | `TOOL_COUNT_WARNING` |
+| **Severity** | `warning` |
+| **`tool` field** | Not set |
+| **`relatedTool` field** | Not set |
+
+## Default threshold
+
+The default maximum is **20 tools**. If your server exposes 21 or more tools, MCP Watchtower produces one finding:
+
+```json
+{
+  "severity": "warning",
+  "code": "TOOL_COUNT_WARNING",
+  "message": "Server has 23 tools which exceeds the recommended maximum of 20. Consider splitting into focused sub-servers."
+}
+```
+
+No finding is produced when the tool count is at or below the threshold.
+
+## Why 20 tools?
+
+Research on LLM tool use shows that routing accuracy — the probability that the model selects the most appropriate tool for a task — begins to decline meaningfully above roughly 20 tools. The effect is more pronounced when tools have similar names or overlapping descriptions. Below 20 tools, most models perform reliably; above that number, you should treat the degradation as a real risk for production workloads.
+
+<Note>
+  The threshold of 20 is a practical guideline, not a hard limit imposed by any specification. Some models handle more tools better than others, and the impact depends on how distinct your tools are from each other.
+</Note>
+
+## Configuring the threshold
+
+You can raise or lower the threshold using the `--max-tools` flag when running the CLI, or by setting `maxTools` in the `StaticAnalyzerConfig` object when using the library directly.
+
+<CodeGroup>
+
+```bash CLI
+npx mcp-watchtower scan --server "node dist/server.js" --max-tools 30
+```
+
+```typescript Library
+import { StaticAnalyzer } from 'mcp-watchtower'
+
+const analyzer = new StaticAnalyzer({ maxTools: 30 })
+const report = analyzer.analyze('my-server', tools)
+```
+
+</CodeGroup>
+
+To disable the check entirely, set `--max-tools` to a number larger than any server you expect to analyze.
+
+## Reducing tool count
+
+The most effective way to resolve this warning is to split a large server into smaller, focused sub-servers — each covering a distinct domain or capability.
+
+<Tip>
+  Group tools by the resource they operate on (for example, a `users` server, a `orders` server, and a `reporting` server) rather than by verb (a `read` server and a `write` server). Domain-based splits produce more coherent tool sets and make it easier for the model to route correctly.
+</Tip>
+
+<AccordionGroup>
+  <Accordion title="Example: splitting a large finance server">
+    A server with 28 tools covering market data, portfolio management, and news retrieval could be split into three focused servers:
+
+    | Sub-server | Tools | Example tool names |
+    | ---------- | ----- | ------------------ |
+    | `market-data` | 8 | `get_quote`, `get_ohlcv`, `list_movers` |
+    | `portfolio` | 10 | `get_holdings`, `add_position`, `get_pnl` |
+    | `news` | 6 | `search_news`, `get_article`, `list_sources` |
+
+    Each sub-server stays under the 20-tool threshold, and the model can be directed to the right server before tool selection even begins.
+  </Accordion>
+  <Accordion title="What if I cannot split my server?">
+    If splitting is not feasible, audit your tool list for redundancy first. Look for tools that differ only in minor parameters — these are candidates for consolidation into a single, more general tool. You can also raise the threshold to suppress the warning while you plan a longer-term refactor.
+  </Accordion>
+</AccordionGroup>

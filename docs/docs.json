@@ -1,0 +1,73 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "MCP Watchtower",
+  "theme": "luma",
+  "colors": {
+    "primary": "#2563EB",
+    "light": "#EFF6FF",
+    "dark": "#1E3A8A"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/ariroffe72/mcp-watchtower"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli/scan",
+              "cli/flags",
+              "cli/exit-codes"
+            ]
+          },
+          {
+            "group": "Checks",
+            "pages": [
+              "checks/overview",
+              "checks/duplicate-tool-names",
+              "checks/naming-conventions",
+              "checks/parameter-conflicts",
+              "checks/shadow-patterns",
+              "checks/tool-count"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/ci-integration",
+              "guides/platform-mode",
+              "guides/manifest-mode"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Library",
+            "pages": [
+              "api/overview",
+              "api/static-analyzer",
+              "api/types"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

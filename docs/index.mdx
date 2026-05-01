@@ -1,0 +1,61 @@
+---
+title: "MCP Watchtower: Static Analysis for MCP Servers"
+description: "MCP Watchtower scans MCP servers for tool conflicts, shadow patterns, and naming issues before production. Works with any language, zero LLM calls required."
+---
+
+MCP Watchtower is a static analysis tool that checks your MCP (Model Context Protocol) server's tool definitions for problems that silently degrade LLM routing accuracy — duplicate names, inconsistent conventions, parameter conflicts, and manipulative description patterns. Run it in seconds against any local or remote MCP server, or drop it into your CI pipeline as a quality gate.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="bolt" href="/quickstart">
+    Scan your first MCP server in under a minute using npx — no install required.
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install mcp-watchtower globally or as a project dependency.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/scan">
+    Full reference for the `scan` command and all its flags.
+  </Card>
+  <Card title="What It Checks" icon="shield-check" href="/checks/overview">
+    Learn about duplicate names, shadow patterns, parameter conflicts, and more.
+  </Card>
+  <Card title="CI Integration" icon="code-branch" href="/guides/ci-integration">
+    Add MCP Watchtower as a CI gate in GitHub Actions or any pipeline.
+  </Card>
+  <Card title="TypeScript API" icon="brackets-curly" href="/api/overview">
+    Use MCP Watchtower as a library in your own TypeScript or Node.js project.
+  </Card>
+</CardGroup>
+
+## How it works
+
+<Steps>
+  <Step title="Point at your server">
+    Pass a startup command, a remote URL, or a tools manifest JSON file.
+  </Step>
+  <Step title="Watchtower fetches the tool list">
+    It connects to your MCP server, retrieves the full tool manifest, and disconnects — no traffic is intercepted or modified.
+  </Step>
+  <Step title="All checks run offline">
+    Five deterministic checks run against the tool definitions. No LLM calls, no network requests beyond the initial tool fetch.
+  </Step>
+  <Step title="Get a compatibility report">
+    Findings are printed to the console (or emitted as JSON). Exit code `1` on any critical finding, making it a clean CI gate.
+  </Step>
+</Steps>
+
+## What it catches
+
+<CardGroup cols={2}>
+  <Card title="Duplicate tool names" icon="copy" href="/checks/duplicate-tool-names">
+    Two tools sharing the same name causes unpredictable LLM routing.
+  </Card>
+  <Card title="Naming convention drift" icon="spell-check" href="/checks/naming-conventions">
+    Mixing snake_case, camelCase, and kebab-case across tools confuses models.
+  </Card>
+  <Card title="Parameter conflicts" icon="arrows-left-right" href="/checks/parameter-conflicts">
+    Using `ticker` in one tool and `symbol` in another for the same concept creates inconsistency.
+  </Card>
+  <Card title="Shadow patterns" icon="eye-slash" href="/checks/shadow-patterns">
+    Description text that hijacks LLM tool selection or suppresses other tools.
+  </Card>
+</CardGroup>
