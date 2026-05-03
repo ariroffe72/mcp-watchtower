@@ -1,17 +1,16 @@
-# Source
-src/
-cli/
-tests/
+# Internal pipeline scripts — not needed by end users
+dist/scripts/
+dist/src/crawler/
+dist/src/embeddings/
+dist/src/index-builder/
+
+# Source data — bundled index lives in src/data/ and is included intentionally,
+# but raw corpus/embeddings files must never ship
+src/data/corpus.json
+src/data/embeddings.json
+
+# Dev/test artifacts
 test-servers/
-
-# Config
-tsconfig.json
-vitest.config.ts
-.gitignore
-
-# Dev artifacts
-*.tsbuildinfo
-node_modules/
-
-# Test fixtures
-dist/tests/
+tests/
+.env
+*.env

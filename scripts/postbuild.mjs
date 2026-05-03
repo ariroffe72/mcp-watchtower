@@ -2,7 +2,7 @@ import { copyFile, mkdir, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
 const repoRoot = process.cwd()
-const obsoleteMirrors = ['analyzers', 'crawler', 'embeddings', 'index-builder']
+const obsoleteMirrors = ['analyzers', 'crawler', 'embeddings', 'index-builder', 'report']
 
 async function main() {
   await copyAnalyzerAssets()
