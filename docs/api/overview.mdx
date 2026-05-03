@@ -1,9 +1,9 @@
 ---
 title: "MCP Watchtower TypeScript library overview"
-description: "Use mcp-watchtower as a Node.js or TypeScript library to run static analysis programmatically — embed it in scripts, registries, or custom CI tooling."
+description: "Use mcp-watchtower as a Node.js or TypeScript library to run static and semantic analysis programmatically in scripts, registries, or custom CI tooling."
 ---
 
-The `mcp-watchtower` package exposes a TypeScript API so you can run the same static analysis checks that power the CLI directly inside your own Node.js or TypeScript application. This is useful when you want to integrate analysis into a custom CI script, a registry that loads multiple MCP servers, or any tooling that already holds tool definitions in memory.
+The `mcp-watchtower` package exposes a TypeScript API so you can run the same static and semantic analysis that power the CLI directly inside your own Node.js or TypeScript application. This is useful when you want to integrate analysis into a custom CI script, a registry that loads multiple MCP servers, or any tooling that already holds tool definitions in memory.
 
 ## Installation
 
@@ -34,24 +34,34 @@ The `mcp-watchtower` package exposes a TypeScript API so you can run the same st
 The package surface is intentionally small. Everything you need is available from the top-level import.
 
 ```typescript
-import { StaticAnalyzer } from 'mcp-watchtower'
-import type { ToolSchema, Finding, StaticReport, StaticAnalyzerConfig } from 'mcp-watchtower'
+import { SemanticAnalyzer, StaticAnalyzer } from 'mcp-watchtower'
+import type {
+  Finding,
+  SemanticFinding,
+  SemanticReport,
+  StaticAnalyzerConfig,
+  StaticReport,
+  ToolSchema,
+} from 'mcp-watchtower'
 ```
 
 | Export | Kind | Description |
 |---|---|---|
 | `StaticAnalyzer` | Class | Runs all five static checks against a set of tool definitions. |
+| `SemanticAnalyzer` | Class | Compares tool descriptions against the semantic corpus and reports likely overlaps. |
 | `ToolSchema` | Type | Shape of a single tool definition as declared in an MCP server manifest. |
 | `Finding` | Type | A single issue produced by the analyzer. |
+| `SemanticFinding` | Type | A single semantic overlap result produced by `SemanticAnalyzer`. |
 | `StaticReport` | Type | The full analysis result returned by `analyze()`. |
+| `SemanticReport` | Type | The semantic analysis result returned by `SemanticAnalyzer.analyze()`. |
 | `StaticAnalyzerConfig` | Type | Configuration options passed to the `StaticAnalyzer` constructor. |
 
 ## Quick example
 
-The following end-to-end example creates an analyzer, passes it a set of tool definitions, and prints any critical findings to the console.
+The following end-to-end example runs both analyzers against the same toolset.
 
 ```typescript
-import { StaticAnalyzer } from 'mcp-watchtower'
+import { SemanticAnalyzer, StaticAnalyzer } from 'mcp-watchtower'
 import type { ToolSchema } from 'mcp-watchtower'
 
 const tools: ToolSchema[] = [
@@ -80,9 +90,11 @@ const tools: ToolSchema[] = [
 ]
 
 const analyzer = new StaticAnalyzer({ platform: false, maxTools: 20 })
-const report = analyzer.analyze('my-server', tools)
+const staticReport = analyzer.analyze('my-server', tools)
+const semanticReport = await new SemanticAnalyzer({ threshold: 0.8 }).analyze('my-server', tools)
 
-const criticals = report.findings.filter(f => f.severity === 'critical')
+const criticals = staticReport.findings.filter(f => f.severity === 'critical')
+const semanticWarnings = semanticReport.findings.filter(f => f.code === 'SEMANTIC_OVERLAP')
 
 if (criticals.length > 0) {
   console.error(`Analysis failed with ${criticals.length} critical finding(s):`)
@@ -92,19 +104,27 @@ if (criticals.length > 0) {
   process.exit(1)
 }
 
-console.log(`Analysis passed. ${report.findings.length} finding(s) total.`)
-console.log(report.findings)
+console.log(`Static findings: ${staticReport.findings.length}`)
+console.log(`Semantic warnings: ${semanticWarnings.length}`)
+console.log(semanticReport.findings)
 ```
 
 <Tip>
   The `PARAMETER_CONFLICT` finding in the example above flags `ticker` (in `get_stock_price`) and `symbol` (in `get_company_info`) as likely synonyms. Standardizing on one name across your server eliminates this warning.
 </Tip>
 
+<Note>
+  `SemanticAnalyzer` is asynchronous because it embeds tool descriptions at runtime and queries the shipped semantic index. The CLI uses the same class behind `mcp-watchtower scan --semantic`.
+</Note>
+
 ## Next steps
 
 <CardGroup cols={2}>
   <Card title="StaticAnalyzer class reference" icon="code" href="/api/static-analyzer">
     Constructor options, the `analyze()` method signature, and the full `StaticReport` shape.
+  </Card>
+  <Card title="SemanticAnalyzer class reference" icon="radar" href="/api/semantic-analyzer">
+    Constructor options, matching behavior, and the full `SemanticReport` shape.
   </Card>
   <Card title="Types reference" icon="brackets-curly" href="/api/types">
     Full documentation for every exported interface and type, including all finding codes.
