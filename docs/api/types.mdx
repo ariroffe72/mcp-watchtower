@@ -1,12 +1,19 @@
 ---
 title: "TypeScript types and interfaces reference"
-description: "Complete reference for every TypeScript type exported by mcp-watchtower: ToolSchema, Finding, StaticReport, and StaticAnalyzerConfig."
+description: "Complete reference for every TypeScript type exported by mcp-watchtower, including static and semantic report shapes."
 ---
 
-`mcp-watchtower` exports four TypeScript interfaces. You can import any of them as types alongside the `StaticAnalyzer` class. This page documents every field, its type, and its meaning.
+`mcp-watchtower` exports six TypeScript interfaces and type shapes. You can import them alongside `StaticAnalyzer` and `SemanticAnalyzer`. This page documents every field, its type, and its meaning.
 
 ```typescript
-import type { ToolSchema, Finding, StaticReport, StaticAnalyzerConfig } from 'mcp-watchtower'
+import type {
+  Finding,
+  SemanticFinding,
+  SemanticReport,
+  StaticAnalyzerConfig,
+  StaticReport,
+  ToolSchema,
+} from 'mcp-watchtower'
 ```
 
 ---
@@ -205,4 +212,106 @@ const tool: ToolSchema = {
 
 <ResponseField name="maxTools" type="number" default="20">
   Tool count threshold for `TOOL_COUNT_WARNING`. A finding is emitted when `tools.length` exceeds this value.
+</ResponseField>
+
+---
+
+## SemanticFinding
+
+`SemanticFinding` represents a single result produced by `SemanticAnalyzer`. Semantic findings are separate from static `Finding` objects because they carry corpus match metadata.
+
+<ResponseField name="severity" type="'warning' | 'info'" required>
+  Semantic findings are never `critical`. `SEMANTIC_OVERLAP` is a `warning`, while `ALREADY_IN_CORPUS` is typically `info`.
+</ResponseField>
+
+<ResponseField name="code" type="'SEMANTIC_OVERLAP' | 'ALREADY_IN_CORPUS'" required>
+  Machine-readable identifier for the semantic match type.
+</ResponseField>
+
+<ResponseField name="tool" type="string" required>
+  Name of the tool in the server you analyzed.
+</ResponseField>
+
+<ResponseField name="matchedTool" type="string" required>
+  Name of the matching tool in the semantic corpus.
+</ResponseField>
+
+<ResponseField name="matchedServer" type="string" required>
+  Qualified server identifier from the corpus, such as `owner/server-name`.
+</ResponseField>
+
+<ResponseField name="matchedDisplayName" type="string" required>
+  Human-readable display name for the matched corpus server.
+</ResponseField>
+
+<ResponseField name="similarity" type="number" required>
+  Cosine similarity score rounded to two decimals. Higher values indicate a closer semantic match.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable explanation of the overlap and suggested action.
+</ResponseField>
+
+### Semantic finding codes
+
+<AccordionGroup>
+  <Accordion title="ALREADY_IN_CORPUS">
+    **Default severity:** `info`
+
+    The analyzed tool has the same name as a corpus tool and a very high description similarity (`>= 0.95`). This usually means the tool already exists in the corpus. If the corpus entry is your own server, no action is needed.
+
+    ```typescript
+    {
+      severity: 'info',
+      code: 'ALREADY_IN_CORPUS',
+      tool: 'search_docs',
+      matchedTool: 'search_docs',
+      matchedServer: 'acme/search-server',
+      matchedDisplayName: 'Acme Search Server',
+      similarity: 0.97,
+      message: "'search_docs' already exists in the corpus as 'search_docs' in Acme Search Server (similarity: 0.97) — if this is your server, no action needed",
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SEMANTIC_OVERLAP">
+    **Default severity:** `warning`
+
+    The analyzed tool is semantically similar to a tool in the corpus from another server. This is a signal to make your description more specific so LLMs can distinguish the tools more reliably.
+
+    ```typescript
+    {
+      severity: 'warning',
+      code: 'SEMANTIC_OVERLAP',
+      tool: 'search_docs',
+      matchedTool: 'query_documents',
+      matchedServer: 'acme/search-server',
+      matchedDisplayName: 'Acme Search Server',
+      similarity: 0.82,
+      message: "'search_docs' is semantically similar to 'query_documents' in Acme Search Server (similarity: 0.82) — consider adding disambiguation to your description",
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## SemanticReport
+
+`SemanticReport` is the object returned by `await new SemanticAnalyzer().analyze(...)`.
+
+<ResponseField name="server" type="string" required>
+  The `serverName` argument you passed to `analyze()`.
+</ResponseField>
+
+<ResponseField name="toolCount" type="number" required>
+  The number of tools that were analyzed.
+</ResponseField>
+
+<ResponseField name="findings" type="SemanticFinding[]" required>
+  All semantic findings that met the configured similarity threshold. An empty array means no strong overlaps were detected.
+</ResponseField>
+
+<ResponseField name="scannedAt" type="string" required>
+  ISO 8601 timestamp of when the semantic analysis completed.
 </ResponseField>

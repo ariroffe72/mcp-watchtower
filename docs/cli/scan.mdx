@@ -1,9 +1,10 @@
 ---
-title: "mcp-watchtower scan — CLI command reference"
-description: "Reference for the scan command: three input modes (--server, --remote, --manifest), stdin support, and usage examples for local, remote, and manifest scans."
+title: "CLI reference"
+sidebarTitle: "CLI reference"
+description: "Compact reference for the mcp-watchtower CLI: input modes, all scan flags, JSON output, and exit code behavior."
 ---
 
-The `scan` command is the single entry point for running MCP Watchtower. You point it at an MCP server using one of three explicit input modes — `--server`, `--remote`, or `--manifest` — or pipe a tools JSON document over stdin. Watchtower fetches the tool list, runs all five static checks, and prints a human-readable report (or JSON) to stdout. Exit code `1` signals at least one critical finding, making it a clean gate for CI pipelines.
+`scan` is the only command most developers need. Use it with a local server, a remote MCP endpoint, a manifest file, or stdin.
 
 ## Synopsis
 
@@ -13,102 +14,35 @@ npx mcp-watchtower scan [options]
 
 ## Input modes
 
-You must provide exactly one input source per invocation. Passing more than one of `--server`, `--remote`, or `--manifest` together is an error.
+| Mode | Flag | Use it when |
+| --- | --- | --- |
+| Local server | `--server "<command>"` | You want Watchtower to start your MCP server over stdio |
+| Remote endpoint | `--remote "<url>" --auth-token "$TOKEN"` | Your MCP server is already exposed over HTTP |
+| Manifest file | `--manifest ./tools.json` | You already export tool definitions during build or CI |
+| Stdin | no input flag | You want to pipe a tools JSON document directly into the scan |
 
-<Warning>
-  Providing more than one of `--server`, `--remote`, or `--manifest` in the same command causes an immediate error: `Provide only one input source: --server, --remote, or --manifest.`
-</Warning>
+You must provide **exactly one** explicit input source. `--server`, `--remote`, and `--manifest` are mutually exclusive.
 
-<CardGroup cols={2}>
-  <Card title="--server" icon="terminal">
-    Launch a local MCP server over stdio and connect to it.
-  </Card>
-  <Card title="--remote" icon="globe">
-    Connect to a remote HTTP MCP endpoint with bearer auth.
-  </Card>
-  <Card title="--manifest" icon="file-json">
-    Read a pre-exported tools JSON file — no server required.
-  </Card>
-  <Card title="stdin" icon="arrow-right-to-bracket">
-    Pipe a tools JSON document when no explicit flag is given and stdin is not a TTY.
-  </Card>
-</CardGroup>
+Manifest and stdin accept:
 
-## Mode details
+1. a raw tool array
+2. `{ "tools": [...] }`
+3. `{ "result": { "tools": [...] } }`
 
-### `--server` mode
+## Flags
 
-Use `--server` (or `-s`) to pass the shell command that starts your MCP server. Watchtower spawns the process over stdio, calls `listTools`, collects the results, and then shuts the process down.
-
-```bash
-npx mcp-watchtower scan --server "python my_server.py"
-npx mcp-watchtower scan --server "node dist/server.js"
-npx mcp-watchtower scan --server "uvx my-published-server"
-```
-
-The server name in the report is derived automatically from the last segment of the command (e.g. `my_server.py` → `my_server`). Override it with `--name`.
-
-### `--remote` mode
-
-Use `--remote` (or `-r`) to connect to a remote MCP server over HTTP. You must also supply `--auth-token` with a valid bearer token; omitting it throws an error before any network request is made.
-
-<Warning>
-  `--auth-token` is required whenever you use `--remote`. Omitting it causes: `Missing auth token. Use --auth-token when connecting with --remote.`
-</Warning>
-
-```bash
-npx mcp-watchtower scan \
-  --remote "https://api.example.com/mcp" \
-  --auth-token "$MCP_TOKEN"
-```
-
-The server name defaults to the hostname (e.g. `api.example.com`). If the URL path contains a meaningful segment other than `mcp`, that segment is appended: `api.example.com-v2`.
-
-### `--manifest` mode
-
-Use `--manifest` (or `-m`) to read a local JSON file that already contains the tool definitions. This is the recommended mode for CI environments where spinning up a live server is not practical.
-
-```bash
-npx mcp-watchtower scan --manifest ./tools.json
-```
-
-The JSON must be a raw array of tools, an object with a `tools` array, or an object with a `result.tools` array:
-
-```json
-[
-  { "name": "get_ticker", "description": "Fetch a stock quote.", "inputSchema": {} }
-]
-```
-
-### stdin mode
-
-If you do not pass `--server`, `--remote`, or `--manifest`, and stdin is not a TTY, Watchtower reads the tools JSON from stdin. This lets you pipe output from another tool directly into a scan.
-
-```bash
-cat tools.json | npx mcp-watchtower scan
-curl -s https://api.example.com/tools.json | npx mcp-watchtower scan --name remote-export
-```
-
-<Note>
-  stdin mode is triggered automatically when stdin is not a TTY. If you run `npx mcp-watchtower scan` interactively with no flags and no pipe, you will see an error listing the available input modes.
-</Note>
-
-## Full usage
-
-```
-Usage: mcp-watchtower scan [options]
-
-Options:
-  -s, --server <command>     command to start the MCP server process
-  -r, --remote <url>         remote MCP endpoint URL
-  -t, --auth-token <token>   bearer token for --remote MCP endpoint
-  -m, --manifest <path>      path to a JSON file containing tools (CI fallback)
-  -n, --name <name>          server name for the report
-  -j, --json                 output results as JSON
-  -p, --platform             platform mode: elevates name collision severity to critical
-      --max-tools <number>   maximum tools before warning (default: 20)
-  -h, --help                 display help for command
-```
+| Flag | Short | Meaning |
+| --- | --- | --- |
+| `--server <command>` | `-s` | Start a local MCP server process over stdio |
+| `--remote <url>` | `-r` | Connect to a remote MCP endpoint |
+| `--auth-token <token>` | `-t` | Bearer token required with `--remote` |
+| `--manifest <path>` | `-m` | Read tools from a local JSON file |
+| `--name <name>` | `-n` | Override the server label shown in the report |
+| `--json` | `-j` | Emit machine-readable JSON instead of human-readable output |
+| `--platform` | `-p` | Elevate duplicate tool names to critical in shared tool namespaces |
+| `--max-tools <number>` | — | Set a custom tool count threshold |
+| `--semantic` | — | Add semantic overlap detection against the current corpus |
+| `--threshold <number>` | — | Set the semantic similarity threshold (0-1, default: `0.75`) |
 
 ## Examples
 
@@ -155,19 +89,53 @@ npx mcp-watchtower scan --server "node dist/server.js" --platform
 npx mcp-watchtower scan --server "node dist/server.js" --max-tools 15
 ```
 
+```bash Semantic overlap detection
+npx mcp-watchtower scan --server "node dist/server.js" --semantic
+```
+
+```bash Semantic overlap with custom threshold
+npx mcp-watchtower scan --manifest ./tools.json --semantic --threshold 0.8
+```
+
 ```bash Stdin pipe
 cat exported-tools.json | npx mcp-watchtower scan --name my-server
 ```
 
 </CodeGroup>
 
+## JSON output
+
+With `--json`, Watchtower writes a single JSON object to stdout.
+
+```json
+{
+  "server": "my-server",
+  "toolCount": 12,
+  "findings": [],
+  "semanticFindings": [],
+  "passedAt": "2024-11-15T09:32:00.123Z"
+}
+```
+
+- `findings` contains static-analysis results
+- `semanticFindings` is populated only when you pass `--semantic`
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | No critical static findings |
+| `1` | A critical static finding was found, or the command itself failed |
+
+Semantic findings do **not** change the exit code.
+
 ## Related pages
 
 <CardGroup cols={2}>
-  <Card title="Flags reference" icon="sliders" href="/cli/flags">
-    Full documentation for every flag the scan command accepts.
+  <Card title="Static analysis" icon="shield-check" href="/guides/static-analysis">
+    See how to use the default static checks in local development, CI, manifest workflows, and multi-server platforms.
   </Card>
-  <Card title="Exit codes" icon="circle-check" href="/cli/exit-codes">
-    How to interpret exit codes and use them as a CI gate.
+  <Card title="Semantic workflow" icon="radar" href="/guides/semantic-analysis">
+    Learn how the semantic corpus is built and how `--semantic` uses it during scans.
   </Card>
 </CardGroup>

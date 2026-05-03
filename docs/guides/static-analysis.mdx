@@ -1,0 +1,155 @@
+---
+title: "Static analysis workflow"
+description: "Use MCP Watchtower's static checks in local development, CI, manifest mode, and multi-server platform workflows."
+---
+
+Use static analysis when you want MCP Watchtower to catch structural and routing problems in your toolset before release. This is the default scan mode. You do **not** need `--semantic` for any page below.
+
+## What static analysis catches
+
+Every static scan checks for:
+
+- duplicate tool names
+- naming convention drift
+- parameter conflicts
+- shadow patterns in tool descriptions
+- excessive tool counts
+
+For the detailed rule reference, see [What MCP Watchtower checks for](/checks/overview).
+
+## Use it in local development
+
+The fastest local workflow is to point Watchtower at the command that starts your MCP server.
+
+<CodeGroup>
+
+```bash Python server
+npx mcp-watchtower scan --server "python my_server.py"
+```
+
+```bash Node.js server
+npx mcp-watchtower scan --server "node dist/server.js"
+```
+
+```bash Published package via uvx
+npx mcp-watchtower scan --server "uvx my-published-server"
+```
+
+</CodeGroup>
+
+This is the best fit when you want to validate the real server process exactly as a developer would run it locally.
+
+## Use it with a remote MCP endpoint
+
+If your server is already deployed behind HTTP, scan it with `--remote` and a bearer token.
+
+```bash
+npx mcp-watchtower scan \
+  --remote "https://api.example.com/mcp" \
+  --auth-token "$MCP_TOKEN"
+```
+
+<Tip>
+  Store the bearer token in an environment variable instead of putting it directly into shell history.
+</Tip>
+
+## Use it from a manifest in your workspace
+
+If your build already exports a tools JSON file, scan that directly with `--manifest`.
+
+```bash
+npx mcp-watchtower scan --manifest ./tools.json
+```
+
+Accepted JSON shapes:
+
+1. raw tool array
+2. `{ "tools": [...] }`
+3. `{ "result": { "tools": [...] } }`
+
+Manifest mode is the cleanest choice when:
+
+- your CI environment cannot start a live server
+- you want a stable snapshot of the toolset
+- you want to reuse one exported manifest across multiple validation steps
+
+## Use it in CI
+
+Watchtower exits with code `1` on critical static findings, so you can use it as a blocking quality gate without extra wrappers.
+
+```yaml .github/workflows/mcp-lint.yml
+name: MCP lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  mcp-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx mcp-watchtower scan --server "node dist/server.js" --json
+```
+
+Use `--json` when you want machine-readable output for artifacts or downstream tooling.
+
+```bash
+npx mcp-watchtower scan --manifest ./tools.json --json
+```
+
+## Use it for multi-server platforms
+
+If you are validating a registry, orchestrator, or any environment where multiple MCP servers share one tool namespace, add `--platform`.
+
+```bash
+npx mcp-watchtower scan --manifest ./tools.json --platform
+```
+
+`--platform` elevates duplicate tool names to `critical`, which is what you usually want when a collision can break routing across servers.
+
+Use `--platform` when:
+
+- multiple servers are loaded into the same agent context
+- you maintain an MCP registry
+- your desktop config or orchestrator combines more than one MCP server
+
+## Useful static-analysis flags
+
+| Flag | Use it when |
+| --- | --- |
+| `--json` | You want machine-readable output in CI or scripts |
+| `--platform` | You need duplicate tool names to fail hard in multi-server environments |
+| `--max-tools <number>` | You want a stricter or looser tool-count threshold |
+| `--name <name>` | You want to override the server label shown in output |
+
+## Exit code behavior
+
+| Code | Meaning |
+| --- | --- |
+| `0` | The scan completed with no critical static findings |
+| `1` | The scan found a critical static issue, or the command itself failed |
+
+Warnings and info findings do not change the exit code.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="CLI reference" icon="terminal" href="/cli/scan">
+    See all static-analysis flags, input modes, and JSON output fields in one place.
+  </Card>
+  <Card title="Checks reference" icon="list-check" href="/checks/overview">
+    Understand each static check and the finding codes it produces.
+  </Card>
+  <Card title="Semantic analysis" icon="radar" href="/guides/semantic-analysis">
+    Add corpus-based overlap detection when you want to compare your tools against existing MCP tools.
+  </Card>
+</CardGroup>

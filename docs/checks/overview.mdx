@@ -8,47 +8,27 @@ MCP Watchtower runs five deterministic checks against your server's tool definit
 ## All checks at a glance
 
 <CardGroup cols={2}>
-  <Card
-    title="Duplicate tool name detection"
-    icon="copy"
-    href="/checks/duplicate-tool-names"
-  >
+  <Card title="Duplicate tool name detection" icon="copy">
     **Severity: critical**
 
     Flags any tool name that appears more than once in the same server. Duplicate names cause unpredictable LLM routing and must be resolved before deployment.
   </Card>
-  <Card
-    title="Naming convention consistency"
-    icon="text-cursor-input"
-    href="/checks/naming-conventions"
-  >
+  <Card title="Naming convention consistency" icon="text-cursor-input">
     **Severity: warning**
 
     Detects mixing of `snake_case`, `camelCase`, and `kebab-case` across tool names. The majority style wins; outliers are flagged.
   </Card>
-  <Card
-    title="Parameter conflict detection"
-    icon="arrows-left-right"
-    href="/checks/parameter-conflicts"
-  >
+  <Card title="Parameter conflict detection" icon="arrows-left-right">
     **Severity: warning**
 
     Identifies tools that use different parameter names for the same concept — for example, one tool using `ticker` while another uses `symbol`. Uses built-in synonym groups.
   </Card>
-  <Card
-    title="Shadow pattern detection"
-    icon="eye-off"
-    href="/checks/shadow-patterns"
-  >
+  <Card title="Shadow pattern detection" icon="eye-off">
     **Severity: warning or critical**
 
     Scans tool descriptions for text that manipulates LLM tool-routing decisions, such as instructions to always call a tool first or to ignore other tools.
   </Card>
-  <Card
-    title="Tool count threshold warning"
-    icon="hash"
-    href="/checks/tool-count"
-  >
+  <Card title="Tool count threshold warning" icon="hash">
     **Severity: warning**
 
     Warns when the total number of tools in a server exceeds the recommended maximum (default: 20), where LLM routing accuracy is known to degrade.
@@ -84,8 +64,79 @@ interface Finding {
 
 | Check | Finding code | Severity | Triggered by |
 | ----- | ------------ | -------- | ------------ |
-| [Duplicate tool names](/checks/duplicate-tool-names) | `DUPLICATE_TOOL_NAME` | critical | Two or more tools share the same name |
-| [Naming conventions](/checks/naming-conventions) | `NAMING_CONVENTION` | warning | A tool name uses a non-majority casing style |
-| [Parameter conflicts](/checks/parameter-conflicts) | `PARAMETER_CONFLICT` | warning | Two tools use different names for the same parameter concept |
-| [Shadow patterns](/checks/shadow-patterns) | `SHADOW_PATTERN` | warning / critical | A tool description contains a routing-manipulation pattern |
-| [Tool count](/checks/tool-count) | `TOOL_COUNT_WARNING` | warning | Total tool count exceeds the configured maximum |
+| Duplicate tool names | `DUPLICATE_TOOL_NAME` | critical | Two or more tools share the same name |
+| Naming conventions | `NAMING_CONVENTION` | warning | A tool name uses a non-majority casing style |
+| Parameter conflicts | `PARAMETER_CONFLICT` | warning | Two tools use different names for the same parameter concept |
+| Shadow patterns | `SHADOW_PATTERN` | warning / critical | A tool description contains a routing-manipulation pattern |
+| Tool count | `TOOL_COUNT_WARNING` | warning | Total tool count exceeds the configured maximum |
+
+## How to use each check
+
+### Duplicate tool names
+
+- **What triggers it:** the same tool name appears more than once in a single server
+- **Why it matters:** clients and models cannot reliably distinguish between duplicate names
+- **How to fix it:** rename the conflicting tools so each name is unique and specific
+
+This is the only static check that is `critical` by default. If you run multiple servers in a shared namespace, `--platform` also makes collisions a hard failure for multi-server workflows.
+
+### Naming conventions
+
+- **What triggers it:** a recognized naming style differs from the majority convention in the same server
+- **Why it matters:** mixed casing makes toolsets harder for both models and humans to reason about
+- **How to fix it:** rename only the outliers to match the convention used by the rest of the server
+
+Recognized conventions:
+
+| Convention | Example |
+| ---------- | ------- |
+| `snake_case` | `get_stock_price` |
+| `camelCase` | `getStockPrice` |
+| `kebab-case` | `get-stock-price` |
+
+The analyzer uses a majority-wins rule. Names that do not match one of those patterns are ignored rather than flagged.
+
+### Parameter conflicts
+
+- **What triggers it:** two tools use different names for the same parameter concept
+- **Why it matters:** chained tool calls become ambiguous when one tool expects `ticker` and another expects `symbol`
+- **How to fix it:** standardize on one name everywhere that concept appears
+
+Built-in synonym groups include:
+
+| Concept | Recognized names |
+| ------- | ---------------- |
+| Stock identifier | `ticker`, `symbol`, `stock` |
+| Record identifier | `id`, `identifier`, `key` |
+| Search input | `query`, `search`, `q`, `term` |
+| Result limit | `limit`, `max`, `count`, `size` |
+| Pagination offset | `offset`, `skip`, `page` |
+| Resource location | `url`, `uri`, `endpoint`, `href` |
+| User reference | `user`, `username`, `user_id`, `userId` |
+| Time reference | `date`, `timestamp`, `time`, `datetime` |
+
+### Shadow patterns
+
+- **What triggers it:** a tool description contains language that tries to control tool routing instead of describing the tool
+- **Why it matters:** this can confuse models accidentally or act as a prompt-injection vector intentionally
+- **How to fix it:** describe only what the tool does, what it returns, and when it is useful
+
+Common risky phrases include:
+
+| Pattern style | Example |
+| ------------- | ------- |
+| Precondition hijack | `before using <tool>` |
+| Forced invocation | `always call this`, `always call first` |
+| Tool suppression | `do not use <tool>` |
+| Replacement language | `instead of <tool>` |
+| Critical forced ordering | `must be called before` |
+
+If a dependency really is mandatory, enforce it in server logic instead of encoding it in natural-language tool descriptions.
+
+### Tool count threshold
+
+- **What triggers it:** total tool count exceeds the configured threshold
+- **Why it matters:** routing quality tends to degrade once a model has to choose among too many similar tools
+- **How to fix it:** split large servers into smaller domain-based servers or consolidate redundant tools
+
+The default threshold is **20 tools**. You can adjust it with `--max-tools` in the CLI or `maxTools` in the library API. A domain-based split usually works better than separating tools only by verb.

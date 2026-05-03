@@ -1,51 +1,47 @@
 ---
-title: "What is MCP Watchtower?"
-description: "MCP Watchtower scans your MCP server's tool definitions for problems that silently degrade LLM routing — with no LLM calls required."
+title: "Get started with MCP Watchtower"
+sidebarTitle: "Get started"
+description: "Run your first scan, pick an install option, and get oriented in a single short page."
 ---
 
-MCP Watchtower is a static analysis tool for [Model Context Protocol](https://modelcontextprotocol.io) servers. You point it at any MCP server — written in TypeScript, Python, Go, or anything else — and it returns a full compatibility report in seconds. It works by connecting to your server, fetching the tool manifest, and running a set of deterministic checks entirely offline. No LLM calls are made, and no traffic is intercepted.
+MCP Watchtower catches MCP tool definition problems before they turn into routing failures, ambiguous tool behavior, or noisy server surfaces in production.
 
-## Why it matters
+## What you need
 
-LLM tool routing is sensitive to the shape of your tool definitions. Problems like duplicate tool names, inconsistent naming conventions, and manipulative description text can silently cause the model to pick the wrong tool, skip a tool entirely, or behave unpredictably in ways that are hard to debug. MCP Watchtower catches these problems before they reach production.
+- **Node.js 18 or later**
+- **an MCP server or exported tools manifest**
 
-## What it checks
+Check your Node version:
 
-MCP Watchtower runs five checks against your tool definitions:
+```bash
+node --version
+```
 
-<CardGroup cols={2}>
-  <Card title="Duplicate tool names" icon="copy" href="/checks/duplicate-tool-names">
-    Two tools in the same server with the same name causes unpredictable routing behavior.
-  </Card>
-  <Card title="Naming convention inconsistency" icon="spell-check" href="/checks/naming-conventions">
-    Mixing `snake_case`, `camelCase`, and `kebab-case` across tools confuses models trained on consistent patterns.
-  </Card>
-  <Card title="Parameter conflicts" icon="arrows-left-right" href="/checks/parameter-conflicts">
-    Using `ticker` in one tool and `symbol` in another for the same concept creates ambiguity across tool calls.
-  </Card>
-  <Card title="Shadow patterns" icon="eye-slash" href="/checks/shadow-patterns">
-    Description language that hijacks LLM tool routing or suppresses other tools in the same server.
-  </Card>
-  <Card title="Tool count" icon="list-check" href="/checks/tool-count">
-    Routing accuracy degrades when a server exposes more than roughly 20 tools. Watchtower flags servers that exceed the threshold.
-  </Card>
-</CardGroup>
+For a first run, use **`npx`**. You do not need to install anything.
 
-## Key features
+## Run your first scan
 
-- **Works with any MCP server** — connect over stdio to a local process, or over HTTP to a remote endpoint
-- **CI-ready** — exit code `1` on any critical finding makes it a clean pipeline gate
-- **No install required** — run immediately with `npx mcp-watchtower scan`
-- **JSON output** — pass `--json` for machine-readable results you can pipe to other tools
-- **Platform mode** — elevates name collision severity to critical when you're building an orchestrator that loads multiple servers simultaneously
+```bash
+npx mcp-watchtower scan --server "python my_server.py"
+```
+
+<Note>
+  If you want a pinned version for CI or team workflows, install `mcp-watchtower` as a dev dependency and run it from your project scripts. Otherwise, `npx` is the fastest way to start.
+</Note>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="bolt" href="/quickstart">
-    Scan your first MCP server in under a minute using npx — no install required.
+  <Card title="Static analysis" icon="shield-check" href="/guides/static-analysis">
+    Learn how to use MCP Watchtower in local development, CI, manifest mode, and multi-server platforms.
   </Card>
-  <Card title="What it checks" icon="shield-check" href="/checks/overview">
-    Detailed reference for every check Watchtower runs and when each fires.
+  <Card title="Semantic workflow" icon="radar" href="/guides/semantic-analysis">
+    Learn when to use `--semantic`, how to read overlap findings, and how the Smithery-backed corpus works.
+  </Card>
+  <Card title="CLI reference" icon="terminal" href="/cli/scan">
+    See every input mode, flag, JSON output field, and exit code in one compact reference page.
+  </Card>
+  <Card title="Use the TypeScript API" icon="brackets-curly" href="/api/overview">
+    Embed the analyzer in your own scripts, tooling, or registry workflows.
   </Card>
 </CardGroup>

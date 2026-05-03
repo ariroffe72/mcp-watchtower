@@ -1,0 +1,137 @@
+---
+title: "SemanticAnalyzer class reference"
+description: "Full reference for the SemanticAnalyzer class: constructor options, matching behavior, and the SemanticReport shape."
+---
+
+`SemanticAnalyzer` compares your tool descriptions against MCP tools in the semantic corpus. Today that corpus is built from Smithery data and shipped as an HNSW index plus metadata file. The analyzer runs locally against the index; it does not call Smithery during `analyze()`.
+
+## Constructor
+
+```typescript
+new SemanticAnalyzer(config?: { threshold?: number; topK?: number })
+```
+
+Pass an optional configuration object to tune how strictly the analyzer matches tools.
+
+```typescript
+import { SemanticAnalyzer } from 'mcp-watchtower'
+
+const defaultAnalyzer = new SemanticAnalyzer()
+const strictAnalyzer = new SemanticAnalyzer({ threshold: 0.85, topK: 5 })
+```
+
+### Config options
+
+<ParamField path="config.threshold" type="number" default="0.75">
+  Minimum similarity score required before a match becomes a finding. Valid values are between `0` and `1`. Raise the threshold to reduce borderline matches.
+</ParamField>
+
+<ParamField path="config.topK" type="number" default="10">
+  Number of nearest neighbors to retrieve from the semantic index for each tool before threshold filtering is applied. Higher values increase recall at the cost of more comparison work.
+</ParamField>
+
+## analyze()
+
+```typescript
+analyze(serverName: string, tools: ToolSchema[]): Promise<SemanticReport>
+```
+
+Runs semantic overlap detection for the provided tools and returns a `SemanticReport`.
+
+### Parameters
+
+<ParamField path="serverName" type="string" required>
+  Human-readable label for the server being analyzed. Matches from the same `serverName` are filtered out so the analyzer does not flag your own corpus entry as a cross-server overlap.
+</ParamField>
+
+<ParamField path="tools" type="ToolSchema[]" required>
+  Array of tool definitions to compare against the corpus. Tools with empty descriptions are skipped because they cannot be embedded meaningfully.
+</ParamField>
+
+### Return value
+
+`analyze()` resolves to a `SemanticReport`.
+
+<ResponseField name="server" type="string" required>
+  The `serverName` value you passed in.
+</ResponseField>
+
+<ResponseField name="toolCount" type="number" required>
+  Number of tools in the input array.
+</ResponseField>
+
+<ResponseField name="findings" type="SemanticFinding[]" required>
+  Semantic findings that met the configured threshold.
+</ResponseField>
+
+<ResponseField name="scannedAt" type="string" required>
+  ISO 8601 timestamp of when the scan completed.
+</ResponseField>
+
+## How matching works
+
+For each tool, `SemanticAnalyzer`:
+
+1. embeds the tool description
+2. builds a retrieval query from `tool.name + tool.description`
+3. searches the local HNSW index for the nearest neighbors
+4. recomputes similarity from descriptions when the tool names are identical
+5. filters matches below `threshold` and matches from the same server
+6. emits either `ALREADY_IN_CORPUS` or `SEMANTIC_OVERLAP`
+
+<Info>
+  The analyzer loads index files from `~/.mcp-watchtower/index` when a newer downloaded index is present. Otherwise it falls back to the bundled `semantic.hnsw` and `semantic-meta.json` files shipped with the package.
+</Info>
+
+## Code examples
+
+<CodeGroup>
+
+```typescript Basic usage
+import { SemanticAnalyzer } from 'mcp-watchtower'
+import type { ToolSchema } from 'mcp-watchtower'
+
+const tools: ToolSchema[] = [
+  {
+    name: 'search_docs',
+    description: 'Search internal documentation for a query string.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+      },
+      required: ['query'],
+    },
+  },
+]
+
+const analyzer = new SemanticAnalyzer()
+const report = await analyzer.analyze('my-server', tools)
+
+for (const finding of report.findings) {
+  console.log(`[${finding.code}] ${finding.message}`)
+}
+```
+
+```typescript Tuning the threshold
+import { SemanticAnalyzer } from 'mcp-watchtower'
+
+const analyzer = new SemanticAnalyzer({ threshold: 0.85, topK: 5 })
+const report = await analyzer.analyze('my-server', tools)
+
+const overlaps = report.findings.filter(f => f.code === 'SEMANTIC_OVERLAP')
+console.log(`Found ${overlaps.length} strong overlap(s)`)
+```
+
+</CodeGroup>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Semantic workflow" icon="radar" href="/guides/semantic-analysis">
+    How the Smithery-backed corpus is crawled, embedded, indexed, and refreshed.
+  </Card>
+  <Card title="Types reference" icon="brackets-curly" href="/api/types">
+    Field-by-field reference for `SemanticFinding` and `SemanticReport`.
+  </Card>
+</CardGroup>
