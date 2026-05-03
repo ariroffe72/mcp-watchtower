@@ -2,6 +2,8 @@
 
 Analyze MCP servers for naming, routing, and semantic tool conflicts.
 
+**Docs:** https://self-5d39fc87.mintlify.app/
+
 `mcp-watchtower` can inspect a live MCP server, a remote MCP endpoint, or a JSON tool manifest and produce:
 
 - **static findings** for duplicate names, naming inconsistencies, parameter conflicts, shadow patterns, and oversized tool surfaces
@@ -9,6 +11,13 @@ Analyze MCP servers for naming, routing, and semantic tool conflicts.
 
 ![Index refresh](https://github.com/ariroffe72/mcp-watchtower/actions/workflows/refresh-index.yml/badge.svg)
 ![Index updated](https://img.shields.io/badge/dynamic/json?url=https://pub-0eeb51ca45a14ebe89372cca3f4bea7f.r2.dev/manifest.json&query=$.version&label=index%20updated&color=blue)
+
+## Start here
+
+- [Get started](https://self-5d39fc87.mintlify.app/introduction)
+- [CLI reference](https://self-5d39fc87.mintlify.app/cli/scan)
+- [Checks overview](https://self-5d39fc87.mintlify.app/checks/overview)
+- [API reference](https://self-5d39fc87.mintlify.app/api/overview)
 
 ## Quick start
 
