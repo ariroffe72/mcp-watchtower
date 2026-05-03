@@ -19,6 +19,9 @@ jobs:
 
       - run: npm run build
 
+      - name: Ensure .env file exists
+        run: touch .env
+
       - run: npm run publish-index
         env:
           SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
