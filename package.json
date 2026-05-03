@@ -1,6 +1,6 @@
 {
     "name": "mcp-watchtower",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Static analysis and compatibility checks for MCP servers",
     "type": "module",
     "main": "dist/src/index.js",
@@ -11,6 +11,7 @@
     "files": [
         "dist/cli/",
         "dist/src/analyzers/",
+        "dist/src/embeddings/",
         "dist/src/index-updater/",
         "dist/src/index.js",
         "dist/src/index.d.ts",
@@ -35,13 +36,13 @@
         "crawl-and-embed": "npm run crawl && npm run embed",
         "build-index": "node dist/src/index-builder/run.js",
         "full-build": "npm run crawl && npm run embed && npm run build-index",
-        "pack:check": "npm pack --dry-run",
+        "pack:check": "node scripts/verify-package.mjs",
         "publish-index": "node --env-file=.env dist/scripts/publish-index.js",
         "release": "npm run build && npm test && npm run pack:check && changeset publish",
         "test": "vitest run",
         "test:watch": "vitest",
         "version-packages": "changeset version",
-        "prepublishOnly": "npm run build && npm test"
+        "prepublishOnly": "npm run build && npm test && npm run pack:check"
     },
     "keywords": [
         "mcp",
