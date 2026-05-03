@@ -1,0 +1,95 @@
+---
+title: "Semantic analysis workflow"
+description: "How to use semantic analysis, interpret overlap findings, and understand the Smithery-backed corpus at a high level."
+---
+
+Use semantic analysis when you want MCP Watchtower to compare your tool descriptions against existing MCP tools in the current corpus. Today that corpus is built from Smithery data.
+
+## Run it in your workspace
+
+Add `--semantic` to any normal scan mode:
+
+<CodeGroup>
+
+```bash Local server
+npx mcp-watchtower scan --server "uvx my-server" --semantic
+```
+
+```bash Remote endpoint
+npx mcp-watchtower scan \
+  --remote "https://api.example.com/mcp" \
+  --auth-token "$MCP_TOKEN" \
+  --semantic
+```
+
+```bash Manifest file
+npx mcp-watchtower scan --manifest ./tools.json --name my-server --semantic
+```
+
+```bash Stricter matching
+npx mcp-watchtower scan --manifest ./tools.json --semantic --threshold 0.8
+```
+
+```bash JSON output
+npx mcp-watchtower scan --server "node dist/server.js" --semantic --json
+```
+
+</CodeGroup>
+
+## What happens during a semantic scan
+
+<Steps>
+  <Step title="Collect your tools">
+    Watchtower resolves the tool list from `--server`, `--remote`, `--manifest`, or stdin exactly the same way it does for static analysis.
+  </Step>
+  <Step title="Refresh the local index if a newer one exists">
+    Before scanning, Watchtower checks the published corpus manifest. If a newer version is available, it downloads `semantic.hnsw` and `semantic-meta.json` to `~/.mcp-watchtower/index`.
+  </Step>
+  <Step title="Embed and retrieve matches">
+    For each tool with a non-empty description, Watchtower embeds the description, searches the local HNSW index, and retrieves the closest corpus neighbors.
+  </Step>
+  <Step title="Emit semantic findings">
+    Matches above the configured threshold become either `ALREADY_IN_CORPUS` or `SEMANTIC_OVERLAP` findings.
+  </Step>
+</Steps>
+
+<Note>
+  If the remote manifest is unavailable or the download fails, Watchtower keeps scanning with the bundled index that ships inside the package. Semantic scans are never blocked by an index refresh failure.
+</Note>
+
+Semantic findings are added to the report, but they do **not** change the exit code. Exit code `1` still means a critical static finding was detected.
+
+## Semantic finding types
+
+| Finding code | Severity | Meaning | Typical action |
+| --- | --- | --- | --- |
+| `ALREADY_IN_CORPUS` | `info` | Your tool appears to already exist in the corpus with the same name and a very similar description. | Confirm whether that corpus entry is yours or intentionally shared. |
+| `SEMANTIC_OVERLAP` | `warning` | Your tool is semantically close to a tool from another server. | Make the description more specific so LLMs can distinguish the tools. |
+
+## Current corpus source
+
+Today the semantic corpus comes from Smithery only.
+
+At a high level, Watchtower builds the corpus by collecting tool metadata from popular Smithery servers, normalizing that data, and turning the tool descriptions into a local search index. That means semantic analysis is only as broad as the current Smithery-backed corpus. Additional registries can be added later without changing how you run the scan.
+
+## Useful semantic-analysis flags
+
+| Flag | Use it when |
+| --- | --- |
+| `--semantic` | You want corpus-based overlap detection in addition to static checks |
+| `--threshold <number>` | You want stricter or looser similarity matching |
+| `--json` | You want semantic findings in machine-readable output |
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Static analysis" icon="shield-check" href="/guides/static-analysis">
+    Start with the default static checks, then add semantic overlap detection when you need it.
+  </Card>
+  <Card title="CLI reference" icon="terminal" href="/cli/scan">
+    See `--semantic`, `--threshold`, JSON output, and exit code behavior in one place.
+  </Card>
+  <Card title="SemanticAnalyzer API" icon="radar" href="/api/semantic-analyzer">
+    Use the semantic analyzer directly from TypeScript.
+  </Card>
+</CardGroup>

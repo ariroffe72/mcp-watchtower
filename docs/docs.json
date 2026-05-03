@@ -21,36 +21,26 @@
           {
             "group": "Get Started",
             "pages": [
-              "introduction",
-              "quickstart",
-              "installation"
+              "introduction"
             ]
           },
           {
             "group": "CLI Reference",
             "pages": [
-              "cli/scan",
-              "cli/flags",
-              "cli/exit-codes"
+              "cli/scan"
             ]
           },
           {
             "group": "Checks",
             "pages": [
-              "checks/overview",
-              "checks/duplicate-tool-names",
-              "checks/naming-conventions",
-              "checks/parameter-conflicts",
-              "checks/shadow-patterns",
-              "checks/tool-count"
+              "checks/overview"
             ]
           },
           {
             "group": "Guides",
             "pages": [
-              "guides/ci-integration",
-              "guides/platform-mode",
-              "guides/manifest-mode"
+              "guides/static-analysis",
+              "guides/semantic-analysis"
             ]
           }
         ]
@@ -63,6 +53,7 @@
             "pages": [
               "api/overview",
               "api/static-analyzer",
+              "api/semantic-analyzer",
               "api/types"
             ]
           }
