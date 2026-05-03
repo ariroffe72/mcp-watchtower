@@ -28,6 +28,7 @@ describe('package rename metadata', () => {
     const readme = readFileSync(join(ROOT, 'README.md'), 'utf-8')
 
     expect(readme).toContain('npx mcp-watchtower scan --server "uvx my-server"')
+    expect(readme).toContain('npx mcp-watchtower scan --remote "https://api.example.com/mcp"')
     expect(readme).toContain('npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN"')
     expect(readme).toContain('npx mcp-watchtower scan --manifest ./tools.json --name my-server')
   })

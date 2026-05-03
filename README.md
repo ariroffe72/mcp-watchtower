@@ -31,7 +31,10 @@ npx mcp-watchtower scan --server "uvx my-server"
 # Local MCP server over stdio
 npx mcp-watchtower scan --server "uvx my-server"
 
-# Remote MCP endpoint
+# Remote MCP endpoint without auth
+npx mcp-watchtower scan --remote "https://api.example.com/mcp"
+
+# Remote MCP endpoint with bearer auth
 npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN"
 
 # Manifest / CI input
@@ -53,6 +56,8 @@ npx mcp-watchtower scan --server "uvx my-server" --semantic
 # Tune semantic sensitivity
 npx mcp-watchtower scan --server "uvx my-server" --semantic --threshold 0.8
 ```
+
+`--auth-token` is optional for `--remote` and is only needed when the endpoint requires bearer authentication.
 
 ## What it checks
 

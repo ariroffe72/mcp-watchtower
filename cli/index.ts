@@ -37,7 +37,7 @@ program
   .description('Scan an MCP server for tool conflicts and compatibility issues')
   .option('-s, --server <command>', 'command to start the MCP server process')
   .option('-r, --remote <url>',      'remote MCP endpoint URL (e.g. https://api.example.com/mcp)')
-  .option('-t, --auth-token <token>', 'bearer token for --remote MCP endpoint')
+  .option('-t, --auth-token <token>', 'optional bearer token for a protected --remote MCP endpoint')
   .option('-m, --manifest <path>',  'path to a JSON file containing tools (CI fallback)')
   .option('-n, --name <name>',      'server name for the report')
   .option('-j, --json',             'output results as JSON')
@@ -99,8 +99,7 @@ async function resolveTools(options: {
 
   if (mode === 'remote') {
     const endpoint = options.remote!
-    const token = options.authToken!
-    const tools = await fetchToolsFromRemoteServer(endpoint, token)
+    const tools = await fetchToolsFromRemoteServer(endpoint, options.authToken)
     const serverName = options.name ?? deriveServerNameFromUrl(endpoint)
     return { tools, serverName }
   }
@@ -163,7 +162,7 @@ async function fetchToolsFromLocalServer(command: string): Promise<ToolSchema[]>
   }
 }
 
-async function fetchToolsFromRemoteServer(endpoint: string, token: string): Promise<ToolSchema[]> {
+async function fetchToolsFromRemoteServer(endpoint: string, token?: string): Promise<ToolSchema[]> {
   let url: URL
   try {
     url = new URL(endpoint)
@@ -173,13 +172,15 @@ async function fetchToolsFromRemoteServer(endpoint: string, token: string): Prom
 
   process.stderr.write(`Connecting to remote server: ${url.toString()}\n`)
 
-  const transport = new StreamableHTTPClientTransport(url, {
-    requestInit: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  })
+  const transport = new StreamableHTTPClientTransport(url, token
+    ? {
+        requestInit: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    : undefined)
 
   const client = new Client(
     { name: 'mcp-watchtower', version: '0.1.0' },
@@ -200,7 +201,7 @@ async function fetchToolsFromRemoteServer(endpoint: string, token: string): Prom
     await closeClient(client)
     throw new Error(
       `Failed to connect to remote MCP endpoint "${endpoint}".\n` +
-      `Make sure the endpoint is reachable and the bearer token is valid.\n` +
+      `Make sure the endpoint is reachable and any supplied bearer token is valid.\n` +
       `Details: ${(err as Error).message}`
     )
   }

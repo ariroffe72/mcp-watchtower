@@ -19,9 +19,6 @@ export function resolveInputMode(options: ScanInputOptions, stdinIsTTY: boolean)
   }
 
   if (options.remote) {
-    if (!options.authToken) {
-      throw new Error('Missing auth token. Use --auth-token when connecting with --remote.')
-    }
     return 'remote'
   }
 
@@ -32,7 +29,7 @@ export function resolveInputMode(options: ScanInputOptions, stdinIsTTY: boolean)
   throw new Error(
     'No input provided. Examples:\n\n' +
     '  npx mcp-watchtower scan --server "python my_server.py"\n' +
-    '  npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$TOKEN"\n' +
+    '  npx mcp-watchtower scan --remote "https://api.example.com/mcp"\n' +
     '  npx mcp-watchtower scan --manifest ./tools.json\n'
   )
 }
