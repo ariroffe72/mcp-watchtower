@@ -19,9 +19,9 @@ describe('CLI input mode selection', () => {
     expect(mode).toBe('remote')
   })
 
-  it('requires auth token for remote mode', () => {
-    expect(() => resolveInputMode({ remote: 'https://api.example.com/mcp' }, true))
-      .toThrow('Missing auth token')
+  it('selects remote mode when --remote is provided without an auth token', () => {
+    const mode = resolveInputMode({ remote: 'https://api.example.com/mcp' }, true)
+    expect(mode).toBe('remote')
   })
 
   it('rejects multiple explicit input modes at the same time', () => {

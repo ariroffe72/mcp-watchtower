@@ -3,7 +3,7 @@ title: "Static analysis workflow"
 description: "Use MCP Watchtower's static checks in local development, CI, manifest mode, and multi-server platform workflows."
 ---
 
-Use static analysis when you want MCP Watchtower to catch structural and routing problems in your toolset before release. This is the default scan mode. You do **not** need `--semantic` for any page below.
+Use static analysis when you want MCP Watchtower to catch structural and routing problems in your toolset before release. If you want only the deterministic static checks, pass `--syntactic`.
 
 ## What static analysis catches
 
@@ -41,12 +41,21 @@ This is the best fit when you want to validate the real server process exactly a
 
 ## Use it with a remote MCP endpoint
 
-If your server is already deployed behind HTTP, scan it with `--remote` and a bearer token.
+If your server is already deployed behind HTTP, scan it with `--remote`. Add `--auth-token` only when the endpoint requires bearer authentication.
+
+```bash
+npx mcp-watchtower scan --remote "https://api.example.com/mcp"
+```
+
+```bash
+npx mcp-watchtower scan --remote "https://api.example.com/mcp" --syntactic
+```
 
 ```bash
 npx mcp-watchtower scan \
   --remote "https://api.example.com/mcp" \
-  --auth-token "$MCP_TOKEN"
+  --auth-token "$MCP_TOKEN" \
+  --syntactic
 ```
 
 <Tip>
@@ -127,6 +136,7 @@ Use `--platform` when:
 | Flag | Use it when |
 | --- | --- |
 | `--json` | You want machine-readable output in CI or scripts |
+| `--syntactic` | You want to skip the semantic layer and keep the scan deterministic-only |
 | `--platform` | You need duplicate tool names to fail hard in multi-server environments |
 | `--max-tools <number>` | You want a stricter or looser tool-count threshold |
 | `--name <name>` | You want to override the server label shown in output |

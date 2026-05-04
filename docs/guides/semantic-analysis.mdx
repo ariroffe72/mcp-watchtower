@@ -3,35 +3,45 @@ title: "Semantic analysis workflow"
 description: "How to use semantic analysis, interpret overlap findings, and understand the Smithery-backed corpus at a high level."
 ---
 
-Use semantic analysis when you want MCP Watchtower to compare your tool descriptions against existing MCP tools in the current corpus. Today that corpus is built from Smithery data.
+Semantic analysis compares your tool descriptions against existing MCP tools in the current corpus and also performs the deeper within-server parameter matching pass. Today that corpus is built from Smithery data.
 
 ## Run it in your workspace
 
-Add `--semantic` to any normal scan mode:
+Run a normal scan to get both static and semantic analysis, or add `--semantic` when you want the semantic layer by itself:
 
 <CodeGroup>
 
 ```bash Local server
-npx mcp-watchtower scan --server "uvx my-server" --semantic
+npx mcp-watchtower scan --server "uvx my-server"
 ```
 
 ```bash Remote endpoint
+npx mcp-watchtower scan \
+  --remote "https://api.example.com/mcp" \
+  --semantic
+```
+
+```bash Remote endpoint with auth
 npx mcp-watchtower scan \
   --remote "https://api.example.com/mcp" \
   --auth-token "$MCP_TOKEN" \
   --semantic
 ```
 
-```bash Manifest file
+```bash Semantic-only manifest scan
 npx mcp-watchtower scan --manifest ./tools.json --name my-server --semantic
 ```
 
 ```bash Stricter matching
-npx mcp-watchtower scan --manifest ./tools.json --semantic --threshold 0.8
+npx mcp-watchtower scan --manifest ./tools.json --threshold 0.8
+```
+
+```bash Semantic-only opt-in
+npx mcp-watchtower scan --server "node dist/server.js" --semantic
 ```
 
 ```bash JSON output
-npx mcp-watchtower scan --server "node dist/server.js" --semantic --json
+npx mcp-watchtower scan --server "node dist/server.js" --json
 ```
 
 </CodeGroup>
@@ -48,8 +58,11 @@ npx mcp-watchtower scan --server "node dist/server.js" --semantic --json
   <Step title="Embed and retrieve matches">
     For each tool with a non-empty description, Watchtower embeds the description, searches the local HNSW index, and retrieves the closest corpus neighbors.
   </Step>
+  <Step title="Compare parameter meaning within your server">
+    Watchtower also embeds parameter context (`parameter name + parameter description + tool context`) to catch niche parameter aliases that the static checker cannot prove from deterministic normalization alone.
+  </Step>
   <Step title="Emit semantic findings">
-    Matches above the configured threshold become either `ALREADY_IN_CORPUS` or `SEMANTIC_OVERLAP` findings.
+    Matches above the configured threshold become `ALREADY_IN_CORPUS`, `SEMANTIC_OVERLAP`, or `SEMANTIC_PARAMETER_CONFLICT` findings.
   </Step>
 </Steps>
 
@@ -65,6 +78,7 @@ Semantic findings are added to the report, but they do **not** change the exit c
 | --- | --- | --- | --- |
 | `ALREADY_IN_CORPUS` | `info` | Your tool appears to already exist in the corpus with the same name and a very similar description. | Confirm whether that corpus entry is yours or intentionally shared. |
 | `SEMANTIC_OVERLAP` | `warning` | Your tool is semantically close to a tool from another server. | Make the description more specific so LLMs can distinguish the tools. |
+| `SEMANTIC_PARAMETER_CONFLICT` | `warning` | Two parameters in the same server look semantically equivalent even though they use different names. | Standardize the parameter name or tighten the parameter descriptions so the intent is unambiguous. |
 
 ## Current corpus source
 
@@ -76,18 +90,19 @@ At a high level, Watchtower builds the corpus by collecting tool metadata from p
 
 | Flag | Use it when |
 | --- | --- |
-| `--semantic` | You want corpus-based overlap detection in addition to static checks |
+| `--semantic` | You want only the semantic layer without the deterministic static checks |
 | `--threshold <number>` | You want stricter or looser similarity matching |
 | `--json` | You want semantic findings in machine-readable output |
+| no flag | You want the default full scan with both syntactic and semantic analysis |
 
 ## Related pages
 
 <CardGroup cols={2}>
   <Card title="Static analysis" icon="shield-check" href="/guides/static-analysis">
-    Start with the default static checks, then add semantic overlap detection when you need it.
+    Use `--syntactic` when you want only the deterministic static checks.
   </Card>
   <Card title="CLI reference" icon="terminal" href="/cli/scan">
-    See `--semantic`, `--threshold`, JSON output, and exit code behavior in one place.
+    See the default full scan, `--semantic`, `--syntactic`, `--threshold`, JSON output, and exit code behavior in one place.
   </Card>
   <Card title="SemanticAnalyzer API" icon="radar" href="/api/semantic-analyzer">
     Use the semantic analyzer directly from TypeScript.

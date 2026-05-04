@@ -41,11 +41,12 @@ export interface StaticAnalyzerConfig {
 
 export interface SemanticFinding {
   severity: 'warning' | 'info'
-  code: 'SEMANTIC_OVERLAP' | 'ALREADY_IN_CORPUS'
+  code: 'SEMANTIC_OVERLAP' | 'ALREADY_IN_CORPUS' | 'SEMANTIC_PARAMETER_CONFLICT'
   tool: string
   matchedTool: string
   matchedServer: string
   matchedDisplayName: string
+  matchedParameter?: string
   similarity: number
   message: string
 }

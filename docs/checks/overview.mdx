@@ -21,7 +21,7 @@ MCP Watchtower runs five deterministic checks against your server's tool definit
   <Card title="Parameter conflict detection" icon="arrows-left-right">
     **Severity: warning**
 
-    Identifies tools that use different parameter names for the same concept — for example, one tool using `ticker` while another uses `symbol`. Uses built-in synonym groups.
+    Identifies tools that use different parameter names for the same concept — for example, one tool using `ticker` while another uses `symbol`. Uses deterministic normalization and common built-in synonym handling.
   </Card>
   <Card title="Shadow pattern detection" icon="eye-off">
     **Severity: warning or critical**
@@ -102,6 +102,8 @@ The analyzer uses a majority-wins rule. Names that do not match one of those pat
 - **Why it matters:** chained tool calls become ambiguous when one tool expects `ticker` and another expects `symbol`
 - **How to fix it:** standardize on one name everywhere that concept appears
 
+The static check is intentionally deterministic and local-first. It catches common cases through normalization plus a compact synonym seed set, but niche domain aliases may require the deeper semantic pass available in the default full scan or in `--semantic` mode.
+
 Built-in synonym groups include:
 
 | Concept | Recognized names |
@@ -114,6 +116,8 @@ Built-in synonym groups include:
 | Resource location | `url`, `uri`, `endpoint`, `href` |
 | User reference | `user`, `username`, `user_id`, `userId` |
 | Time reference | `date`, `timestamp`, `time`, `datetime` |
+
+If you need broader coverage for organization-specific or niche terms, run the semantic workflow too. That deeper pass can emit `SEMANTIC_PARAMETER_CONFLICT` when two parameters look semantically equivalent even though the static checker could not prove it from deterministic rules alone.
 
 ### Shadow patterns
 

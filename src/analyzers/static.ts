@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Finding, StaticAnalyzerConfig, StaticReport, ToolSchema } from '../types.js'
+import { normalizeParameterName } from './parameter-normalization.js'
 
 interface ShadowPatternEntry {
   regex: string
@@ -25,17 +26,6 @@ function detectConvention(name: string): Convention {
   if (/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(name)) return 'kebab-case'
   return 'unknown'
 }
-
-const SYNONYM_GROUPS: string[][] = [
-  ['ticker', 'symbol', 'stock'],
-  ['id', 'identifier', 'key'],
-  ['query', 'search', 'q', 'term'],
-  ['limit', 'max', 'count', 'size'],
-  ['offset', 'skip', 'page'],
-  ['url', 'uri', 'endpoint', 'href'],
-  ['user', 'username', 'user_id', 'userId'],
-  ['date', 'timestamp', 'time', 'datetime'],
-]
 
 /**
  * Runs static analysis on an MCP server's tool definitions.
@@ -172,16 +162,17 @@ export class StaticAnalyzer {
         const paramsB = Object.keys(toolB.inputSchema?.properties ?? {})
         if (paramsB.length === 0) continue
 
-        for (let groupIdx = 0; groupIdx < SYNONYM_GROUPS.length; groupIdx++) {
-          const group = SYNONYM_GROUPS[groupIdx]
-          const seenKey = [toolA.name, toolB.name].sort().join(':') + ':' + groupIdx
+        for (const paramA of paramsA) {
+          const normalizedA = normalizeParameterName(paramA)
 
-          if (seen.has(seenKey)) continue
+          for (const paramB of paramsB) {
+            if (paramA === paramB) continue
 
-          const paramA = paramsA.find(p => group.includes(p))
-          const paramB = paramsB.find(p => group.includes(p))
+            const normalizedB = normalizeParameterName(paramB)
+            const seenKey = [toolA.name, toolB.name].sort().join(':') + ':' + normalizedA
 
-          if (paramA !== undefined && paramB !== undefined && paramA !== paramB) {
+            if (seen.has(seenKey) || normalizedA !== normalizedB) continue
+
             seen.add(seenKey)
             findings.push({
               code: 'PARAMETER_CONFLICT',

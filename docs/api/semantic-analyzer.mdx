@@ -1,14 +1,14 @@
 ---
 title: "SemanticAnalyzer class reference"
-description: "Full reference for the SemanticAnalyzer class: constructor options, matching behavior, and the SemanticReport shape."
+description: "Full reference for the SemanticAnalyzer class: constructor options, corpus overlap behavior, semantic parameter matching, and the SemanticReport shape."
 ---
 
-`SemanticAnalyzer` compares your tool descriptions against MCP tools in the semantic corpus. Today that corpus is built from Smithery data and shipped as an HNSW index plus metadata file. The analyzer runs locally against the index; it does not call Smithery during `analyze()`.
+`SemanticAnalyzer` compares your tool descriptions against MCP tools in the semantic corpus and also performs a deeper semantic parameter pass within the server you are scanning. Today the corpus is built from Smithery data and shipped as an HNSW index plus metadata file. The analyzer runs locally against that index; it does not call Smithery during `analyze()`.
 
 ## Constructor
 
 ```typescript
-new SemanticAnalyzer(config?: { threshold?: number; topK?: number })
+new SemanticAnalyzer(config?: { threshold?: number; topK?: number; parameterThreshold?: number })
 ```
 
 Pass an optional configuration object to tune how strictly the analyzer matches tools.
@@ -28,6 +28,10 @@ const strictAnalyzer = new SemanticAnalyzer({ threshold: 0.85, topK: 5 })
 
 <ParamField path="config.topK" type="number" default="10">
   Number of nearest neighbors to retrieve from the semantic index for each tool before threshold filtering is applied. Higher values increase recall at the cost of more comparison work.
+</ParamField>
+
+<ParamField path="config.parameterThreshold" type="number" default="0.88">
+  Minimum similarity score required before the within-server semantic parameter matcher emits `SEMANTIC_PARAMETER_CONFLICT`. When omitted, Watchtower uses the stricter of `threshold` and `0.88` to keep the deeper pass conservative by default.
 </ParamField>
 
 ## analyze()
@@ -76,8 +80,9 @@ For each tool, `SemanticAnalyzer`:
 2. builds a retrieval query from `tool.name + tool.description`
 3. searches the local HNSW index for the nearest neighbors
 4. recomputes similarity from descriptions when the tool names are identical
-5. filters matches below `threshold` and matches from the same server
-6. emits either `ALREADY_IN_CORPUS` or `SEMANTIC_OVERLAP`
+5. performs a within-server semantic parameter pass using parameter and tool context
+6. filters corpus matches below `threshold`, filters parameter matches below `parameterThreshold`, and drops corpus matches from the same server
+7. emits `ALREADY_IN_CORPUS`, `SEMANTIC_OVERLAP`, and when applicable `SEMANTIC_PARAMETER_CONFLICT`
 
 <Info>
   The analyzer loads index files from `~/.mcp-watchtower/index` when a newer downloaded index is present. Otherwise it falls back to the bundled `semantic.hnsw` and `semantic-meta.json` files shipped with the package.
@@ -119,8 +124,8 @@ import { SemanticAnalyzer } from 'mcp-watchtower'
 const analyzer = new SemanticAnalyzer({ threshold: 0.85, topK: 5 })
 const report = await analyzer.analyze('my-server', tools)
 
-const overlaps = report.findings.filter(f => f.code === 'SEMANTIC_OVERLAP')
-console.log(`Found ${overlaps.length} strong overlap(s)`)
+const warnings = report.findings.filter(f => f.severity === 'warning')
+console.log(`Found ${warnings.length} semantic warning(s)`)
 ```
 
 </CodeGroup>
