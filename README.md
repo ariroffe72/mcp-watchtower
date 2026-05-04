@@ -25,6 +25,8 @@ Analyze MCP servers for naming, routing, and semantic tool conflicts.
 npx mcp-watchtower scan --server "uvx my-server"
 ```
 
+By default, a scan runs both the deterministic static checks and the deeper semantic analysis pass.
+
 ## CLI
 
 ```bash
@@ -50,11 +52,14 @@ npx mcp-watchtower scan --server "uvx my-server" --json
 # Treat static name collisions as critical
 npx mcp-watchtower scan --server "uvx my-server" --platform
 
-# Semantic overlap detection against the corpus index
+# Syntactic-only scan
+npx mcp-watchtower scan --server "uvx my-server" --syntactic
+
+# Semantic-only scan
 npx mcp-watchtower scan --server "uvx my-server" --semantic
 
 # Tune semantic sensitivity
-npx mcp-watchtower scan --server "uvx my-server" --semantic --threshold 0.8
+npx mcp-watchtower scan --server "uvx my-server" --threshold 0.8
 ```
 
 `--auth-token` is optional for `--remote` and is only needed when the endpoint requires bearer authentication.
@@ -73,6 +78,9 @@ npx mcp-watchtower scan --server "uvx my-server" --semantic --threshold 0.8
 
 - `ALREADY_IN_CORPUS` — the tool appears to already exist in the corpus
 - `SEMANTIC_OVERLAP` — the tool looks close to an existing tool and may need clearer disambiguation
+- `SEMANTIC_PARAMETER_CONFLICT` — two parameters in the same server look semantically equivalent despite inconsistent names
+
+Plain `scan` runs both layers. Use `--syntactic` for only the deterministic checks or `--semantic` for only the deeper semantic pass.
 
 ## Index behavior
 

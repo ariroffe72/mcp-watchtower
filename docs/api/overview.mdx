@@ -94,7 +94,7 @@ const staticReport = analyzer.analyze('my-server', tools)
 const semanticReport = await new SemanticAnalyzer({ threshold: 0.8 }).analyze('my-server', tools)
 
 const criticals = staticReport.findings.filter(f => f.severity === 'critical')
-const semanticWarnings = semanticReport.findings.filter(f => f.code === 'SEMANTIC_OVERLAP')
+const semanticWarnings = semanticReport.findings.filter(f => f.severity === 'warning')
 
 if (criticals.length > 0) {
   console.error(`Analysis failed with ${criticals.length} critical finding(s):`)
@@ -114,7 +114,7 @@ console.log(semanticReport.findings)
 </Tip>
 
 <Note>
-  `SemanticAnalyzer` is asynchronous because it embeds tool descriptions at runtime and queries the shipped semantic index. The CLI uses the same class behind `mcp-watchtower scan --semantic`.
+  `SemanticAnalyzer` is asynchronous because it embeds tool and parameter context at runtime and queries the shipped semantic index. The CLI runs the same class in the default full scan and in `--semantic` mode.
 </Note>
 
 ## Next steps

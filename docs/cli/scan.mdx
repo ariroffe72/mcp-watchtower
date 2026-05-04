@@ -6,6 +6,8 @@ description: "Compact reference for the mcp-watchtower CLI: input modes, all sca
 
 `scan` is the only command most developers need. Use it with a local server, a remote MCP endpoint, a manifest file, or stdin.
 
+By default, `scan` runs both the deterministic static checks and the deeper semantic analysis pass. Use `--syntactic` for only the deterministic checks or `--semantic` for only the semantic layer.
+
 ## Synopsis
 
 ```bash
@@ -17,7 +19,7 @@ npx mcp-watchtower scan [options]
 | Mode | Flag | Use it when |
 | --- | --- | --- |
 | Local server | `--server "<command>"` | You want Watchtower to start your MCP server over stdio |
-| Remote endpoint | `--remote "<url>" --auth-token "$TOKEN"` | Your MCP server is already exposed over HTTP |
+| Remote endpoint | `--remote "<url>"` | Your MCP server is already exposed over HTTP |
 | Manifest file | `--manifest ./tools.json` | You already export tool definitions during build or CI |
 | Stdin | no input flag | You want to pipe a tools JSON document directly into the scan |
 
@@ -35,14 +37,15 @@ Manifest and stdin accept:
 | --- | --- | --- |
 | `--server <command>` | `-s` | Start a local MCP server process over stdio |
 | `--remote <url>` | `-r` | Connect to a remote MCP endpoint |
-| `--auth-token <token>` | `-t` | Bearer token required with `--remote` |
+| `--auth-token <token>` | `-t` | Optional bearer token for protected `--remote` endpoints |
 | `--manifest <path>` | `-m` | Read tools from a local JSON file |
 | `--name <name>` | `-n` | Override the server label shown in the report |
 | `--json` | `-j` | Emit machine-readable JSON instead of human-readable output |
 | `--platform` | `-p` | Elevate duplicate tool names to critical in shared tool namespaces |
 | `--max-tools <number>` | — | Set a custom tool count threshold |
-| `--semantic` | — | Add semantic overlap detection against the current corpus |
-| `--threshold <number>` | — | Set the semantic similarity threshold (0-1, default: `0.75`) |
+| `--syntactic` | — | Run only deterministic syntactic/static checks |
+| `--semantic` | — | Run only semantic overlap detection and deep semantic parameter analysis |
+| `--threshold <number>` | — | Set the semantic similarity threshold (0-1, default: `0.75`) when semantic analysis runs |
 
 ## Examples
 
@@ -61,6 +64,10 @@ npx mcp-watchtower scan --server "uvx my-published-server"
 ```
 
 ```bash Remote endpoint
+npx mcp-watchtower scan --remote "https://api.example.com/mcp"
+```
+
+```bash Remote endpoint with auth
 npx mcp-watchtower scan \
   --remote "https://api.example.com/mcp" \
   --auth-token "$MCP_TOKEN"
@@ -89,12 +96,20 @@ npx mcp-watchtower scan --server "node dist/server.js" --platform
 npx mcp-watchtower scan --server "node dist/server.js" --max-tools 15
 ```
 
-```bash Semantic overlap detection
+```bash Default full scan
+npx mcp-watchtower scan --server "node dist/server.js"
+```
+
+```bash Syntactic-only scan
+npx mcp-watchtower scan --server "node dist/server.js" --syntactic
+```
+
+```bash Semantic-only scan
 npx mcp-watchtower scan --server "node dist/server.js" --semantic
 ```
 
-```bash Semantic overlap with custom threshold
-npx mcp-watchtower scan --manifest ./tools.json --semantic --threshold 0.8
+```bash Full scan with custom threshold
+npx mcp-watchtower scan --manifest ./tools.json --threshold 0.8
 ```
 
 ```bash Stdin pipe
@@ -118,7 +133,7 @@ With `--json`, Watchtower writes a single JSON object to stdout.
 ```
 
 - `findings` contains static-analysis results
-- `semanticFindings` is populated only when you pass `--semantic`
+- `semanticFindings` is populated in the default full scan and in `--semantic` mode, including both corpus-overlap findings and semantic parameter-conflict findings
 
 ## Exit codes
 

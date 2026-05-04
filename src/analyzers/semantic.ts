@@ -5,6 +5,7 @@ import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { embed, EMBEDDING_DIMENSIONS } from '../embeddings/provider.js'
 import type { SemanticFinding, SemanticReport, ToolSchema } from '../types.js'
+import { ParameterSemanticAnalyzer } from './parameter-semantic.js'
 
 const require = createRequire(import.meta.url)
 const { HierarchicalNSW } = require('hnswlib-node') as typeof import('hnswlib-node')
@@ -22,17 +23,22 @@ interface SemanticMetadata {
 interface SemanticAnalyzerConfig {
   threshold?: number
   topK?: number
+  parameterThreshold?: number
 }
 
 export class SemanticAnalyzer {
   private readonly threshold: number
   private readonly topK: number
+  private readonly parameterThreshold: number
   private readonly index: import('hnswlib-node').HierarchicalNSW
   private readonly metadata: SemanticMetadata[]
 
   constructor(config: SemanticAnalyzerConfig = {}) {
     this.threshold = Number.isFinite(config.threshold) ? Number(config.threshold) : DEFAULT_THRESHOLD
     this.topK = Number.isInteger(config.topK) && Number(config.topK) > 0 ? Number(config.topK) : DEFAULT_TOP_K
+    this.parameterThreshold = Number.isFinite(config.parameterThreshold)
+      ? Number(config.parameterThreshold)
+      : Math.max(this.threshold, 0.88)
 
     const metadataPath = resolveIndexPath('semantic-meta.json')
     const indexPath = resolveIndexPath('semantic.hnsw')
@@ -52,13 +58,16 @@ export class SemanticAnalyzer {
 
   async analyze(serverName: string, tools: ToolSchema[]): Promise<SemanticReport> {
     const findings: SemanticFinding[] = []
+    const parameterFindings = await new ParameterSemanticAnalyzer({
+      threshold: this.parameterThreshold,
+    }).analyze(serverName, tools)
     const neighborCount = Math.min(this.topK, this.metadata.length)
 
     if (neighborCount === 0) {
       return {
         server: serverName,
         toolCount: tools.length,
-        findings,
+        findings: parameterFindings,
         scannedAt: new Date().toISOString(),
       }
     }
@@ -92,7 +101,7 @@ export class SemanticAnalyzer {
     return {
       server: serverName,
       toolCount: tools.length,
-      findings,
+      findings: [...parameterFindings, ...findings],
       scannedAt: new Date().toISOString(),
     }
   }

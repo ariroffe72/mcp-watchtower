@@ -14,6 +14,7 @@ import {
   resolveInputMode,
   type ScanInputOptions,
 } from './input.js'
+import { resolveAnalysisMode } from './analysis.js'
 
 const program = new Command()
 
@@ -43,8 +44,9 @@ program
   .option('-j, --json',             'output results as JSON')
   .option('-p, --platform',         'platform mode: elevates name collision severity to critical')
   .option('--max-tools <number>',   'maximum tools before warning (default: 20)', '20')
-  .option('--semantic',             'run semantic overlap detection against the corpus index')
-  .option('--threshold <number>',   'similarity threshold 0-1 (default: 0.75, used with --semantic)', parseThreshold)
+  .option('--syntactic',            'run only deterministic syntactic/static checks')
+  .option('--semantic',             'run only semantic overlap detection plus deep semantic parameter analysis')
+  .option('--threshold <number>',   'similarity threshold 0-1 (default: 0.75, used when semantic analysis runs)', parseThreshold)
   .action(async (options: ScanOptions) => {
     try {
       try {
@@ -54,12 +56,20 @@ program
       }
       printBanner(options)
       const { tools, serverName } = await resolveTools(options)
+      const { runStatic, runSemantic } = resolveAnalysisMode(options)
       const staticAnalyzer = new StaticAnalyzer({
         platform: !!options.platform,
         maxTools: parseInt(options.maxTools, 10),
       })
-      const staticReport = staticAnalyzer.analyze(serverName, tools)
-      const semanticFindings = options.semantic
+      const staticReport = runStatic
+        ? staticAnalyzer.analyze(serverName, tools)
+        : {
+            server: serverName,
+            toolCount: tools.length,
+            findings: [],
+            passedAt: new Date().toISOString(),
+          }
+      const semanticFindings = runSemantic
         ? (await new SemanticAnalyzer({ threshold: options.threshold }).analyze(serverName, tools)).findings
         : []
       const hasCritical = staticReport.findings.some(f => f.severity === 'critical')
@@ -120,6 +130,7 @@ interface ScanOptions extends ScanInputOptions {
   name?: string
   json?: boolean
   platform?: boolean
+  syntactic?: boolean
   semantic?: boolean
   threshold?: number
   maxTools: string
@@ -295,7 +306,7 @@ function printHuman(
 
     if (isSemanticFinding(finding)) {
       process.stdout.write(
-        `  ${finding.matchedTool} in ${finding.matchedDisplayName} (similarity: ${finding.similarity.toFixed(2)})\n`,
+        `  ${finding.matchedParameter ? `${finding.matchedParameter} in ` : ''}${finding.matchedTool} in ${finding.matchedDisplayName} (similarity: ${finding.similarity.toFixed(2)})\n`,
       )
       process.stdout.write(`  ${finding.message}\n`)
     } else {

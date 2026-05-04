@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const requiredPaths = [
   'dist/cli/index.js',
   'dist/src/index.js',
@@ -11,7 +10,7 @@ const requiredPaths = [
   'src/data/semantic.hnsw',
 ]
 
-const output = execFileSync(npmCommand, ['pack', '--dry-run', '--json'], {
+const output = execFileSync(...getNpmPackCommand(), {
   encoding: 'utf8',
   stdio: ['ignore', 'pipe', 'inherit'],
 })
@@ -38,4 +37,13 @@ function parsePackJson(output) {
   }
 
   return parsed[0]
+}
+
+function getNpmPackCommand() {
+  if (process.platform === 'win32') {
+    const shell = process.env.ComSpec ?? 'C:\\Windows\\System32\\cmd.exe'
+    return [shell, ['/d', '/s', '/c', 'npm pack --dry-run --json']]
+  }
+
+  return ['npm', ['pack', '--dry-run', '--json']]
 }

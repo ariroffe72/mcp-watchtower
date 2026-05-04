@@ -129,7 +129,7 @@ const tool: ToolSchema = {
   <Accordion title="PARAMETER_CONFLICT">
     **Default severity:** `warning`
 
-    Two tools use different parameter names for the same semantic concept — for example, `ticker` in one tool and `symbol` in another. The analyzer checks against a built-in list of synonym groups covering common patterns like identifiers, pagination, and date fields.
+    Two tools use different parameter names for the same semantic concept — for example, `ticker` in one tool and `symbol` in another. The analyzer uses deterministic normalization plus a built-in synonym seed set covering common patterns like identifiers, pagination, and date fields.
 
     Both the `tool` and `relatedTool` fields are set.
 
@@ -221,10 +221,10 @@ const tool: ToolSchema = {
 `SemanticFinding` represents a single result produced by `SemanticAnalyzer`. Semantic findings are separate from static `Finding` objects because they carry corpus match metadata.
 
 <ResponseField name="severity" type="'warning' | 'info'" required>
-  Semantic findings are never `critical`. `SEMANTIC_OVERLAP` is a `warning`, while `ALREADY_IN_CORPUS` is typically `info`.
+  Semantic findings are never `critical`. `SEMANTIC_OVERLAP` and `SEMANTIC_PARAMETER_CONFLICT` are `warning` findings, while `ALREADY_IN_CORPUS` is typically `info`.
 </ResponseField>
 
-<ResponseField name="code" type="'SEMANTIC_OVERLAP' | 'ALREADY_IN_CORPUS'" required>
+<ResponseField name="code" type="'SEMANTIC_OVERLAP' | 'ALREADY_IN_CORPUS' | 'SEMANTIC_PARAMETER_CONFLICT'" required>
   Machine-readable identifier for the semantic match type.
 </ResponseField>
 
@@ -242,6 +242,10 @@ const tool: ToolSchema = {
 
 <ResponseField name="matchedDisplayName" type="string" required>
   Human-readable display name for the matched corpus server.
+</ResponseField>
+
+<ResponseField name="matchedParameter" type="string">
+  Parameter name involved in a `SEMANTIC_PARAMETER_CONFLICT` finding. Omitted for corpus-overlap findings.
 </ResponseField>
 
 <ResponseField name="similarity" type="number" required>
@@ -289,6 +293,28 @@ const tool: ToolSchema = {
       matchedDisplayName: 'Acme Search Server',
       similarity: 0.82,
       message: "'search_docs' is semantically similar to 'query_documents' in Acme Search Server (similarity: 0.82) — consider adding disambiguation to your description",
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SEMANTIC_PARAMETER_CONFLICT">
+    **Default severity:** `warning`
+
+    Two parameters in the same scanned server look semantically equivalent even though they use different names. This finding comes from the deeper semantic parameter pass, which compares parameter names and descriptions in the context of their surrounding tools.
+
+    The `tool`, `matchedTool`, and `matchedParameter` fields are set. `matchedServer` and `matchedDisplayName` are set to the scanned server name because the comparison is within one server, not against the external corpus.
+
+    ```typescript
+    {
+      severity: 'warning',
+      code: 'SEMANTIC_PARAMETER_CONFLICT',
+      tool: 'list_portfolios',
+      matchedTool: 'summarize_allocations',
+      matchedServer: 'portfolio-server',
+      matchedDisplayName: 'portfolio-server',
+      matchedParameter: 'holdings',
+      similarity: 0.93,
+      message: "Parameter 'portfolio_ids' in 'list_portfolios' is semantically similar to 'holdings' in 'summarize_allocations' (similarity: 0.93) — consider using a shared name or clearer descriptions",
     }
     ```
   </Accordion>
