@@ -1,6 +1,10 @@
 export { StaticAnalyzer } from './analyzers/static.js'
 export { SemanticAnalyzer } from './analyzers/semantic.js'
 export type {
+  AnalysisPhase,
+  AnalysisReporter,
+  AnalysisToolStartEvent,
+  AnalysisFindingEvent,
   ToolSchema,
   Finding,
   StaticReport,

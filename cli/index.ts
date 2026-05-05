@@ -6,7 +6,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { refreshIndexIfNeeded } from '../src/index-updater/index.js'
 import { SemanticAnalyzer, StaticAnalyzer } from '../src/index.js'
-import type { ToolSchema, Finding, SemanticFinding } from '../src/index.js'
+import type { ToolSchema } from '../src/index.js'
 import chalk from 'chalk'
 import {
   deriveServerNameFromCommand,
@@ -15,6 +15,7 @@ import {
   type ScanInputOptions,
 } from './input.js'
 import { resolveAnalysisMode } from './analysis.js'
+import { createProgressReporter, printHuman } from './output.js'
 
 const program = new Command()
 
@@ -46,6 +47,7 @@ program
   .option('--max-tools <number>',   'maximum tools before warning (default: 20)', '20')
   .option('--syntactic',            'run only deterministic syntactic/static checks')
   .option('--semantic',             'run only semantic overlap detection plus deep semantic parameter analysis')
+  .option('-v, --verbose',          'reserved for future expanded scan logging')
   .option('--threshold <number>',   'similarity threshold 0-1 (default: 0.75, used when semantic analysis runs)', parseThreshold)
   .action(async (options: ScanOptions) => {
     try {
@@ -57,9 +59,11 @@ program
       printBanner(options)
       const { tools, serverName } = await resolveTools(options)
       const { runStatic, runSemantic } = resolveAnalysisMode(options)
+      const reporter = createProgressReporter(options)
       const staticAnalyzer = new StaticAnalyzer({
         platform: !!options.platform,
         maxTools: parseInt(options.maxTools, 10),
+        reporter,
       })
       const staticReport = runStatic
         ? staticAnalyzer.analyze(serverName, tools)
@@ -70,7 +74,10 @@ program
             passedAt: new Date().toISOString(),
           }
       const semanticFindings = runSemantic
-        ? (await new SemanticAnalyzer({ threshold: options.threshold }).analyze(serverName, tools)).findings
+        ? (await new SemanticAnalyzer({
+            threshold: options.threshold,
+            reporter,
+          }).analyze(serverName, tools)).findings
         : []
       const hasCritical = staticReport.findings.some(f => f.severity === 'critical')
 
@@ -132,6 +139,7 @@ interface ScanOptions extends ScanInputOptions {
   platform?: boolean
   syntactic?: boolean
   semantic?: boolean
+  verbose?: boolean
   threshold?: number
   maxTools: string
 }
@@ -265,64 +273,3 @@ function parseThreshold(value: string): number {
   return parsed
 }
 
-const SEVERITY_ICON: Record<string, string> = {
-  critical: '✖',
-  warning:  '⚠',
-  info:     'ℹ',
-}
-
-const SEVERITY_LABEL: Record<string, string> = {
-  critical: 'CRITICAL',
-  warning:  'WARNING',
-  info:     'INFO',
-}
-
-function printHuman(
-  server: string,
-  toolCount: number,
-  findings: Finding[],
-  semanticFindings: SemanticFinding[],
-): void {
-  const combinedFindings: Array<Finding | SemanticFinding> = [...findings, ...semanticFindings]
-  const criticals = findings.filter(f => f.severity === 'critical')
-  const warnings  = findings.filter(f => f.severity === 'warning').length + semanticFindings.filter(f => f.severity === 'warning').length
-  const infos     = findings.filter(f => f.severity === 'info').length + semanticFindings.filter(f => f.severity === 'info').length
-
-  process.stdout.write('\n')
-  process.stdout.write(`mcp-watchtower — ${server}\n`)
-  process.stdout.write(`${toolCount} tool${toolCount === 1 ? '' : 's'} scanned\n`)
-  process.stdout.write('\n')
-
-  if (combinedFindings.length === 0) {
-    process.stdout.write('✔  No issues found\n\n')
-    return
-  }
-
-  for (const finding of combinedFindings) {
-    const icon  = SEVERITY_ICON[finding.severity]
-    const label = SEVERITY_LABEL[finding.severity]
-    const tool  = finding.tool ? ` [${finding.tool}]` : ''
-    process.stdout.write(`${icon} ${label}${tool}  ${finding.code}\n`)
-
-    if (isSemanticFinding(finding)) {
-      process.stdout.write(
-        `  ${finding.matchedParameter ? `${finding.matchedParameter} in ` : ''}${finding.matchedTool} in ${finding.matchedDisplayName} (similarity: ${finding.similarity.toFixed(2)})\n`,
-      )
-      process.stdout.write(`  ${finding.message}\n`)
-    } else {
-      process.stdout.write(`  ${finding.message}\n`)
-    }
-
-    if (!isSemanticFinding(finding) && finding.relatedTool) {
-      process.stdout.write(`  Related tool: ${finding.relatedTool}\n`)
-    }
-    process.stdout.write('\n')
-  }
-
-  process.stdout.write('─────────────────────────────────────\n')
-  process.stdout.write(`${criticals.length} critical  ${warnings} warning  ${infos} info\n\n`)
-}
-
-function isSemanticFinding(finding: Finding | SemanticFinding): finding is SemanticFinding {
-  return 'matchedTool' in finding
-}

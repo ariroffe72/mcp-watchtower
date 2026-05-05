@@ -22,6 +22,23 @@ export interface Finding {
   relatedTool?: string
 }
 
+export type AnalysisPhase = 'static' | 'semantic'
+
+export interface AnalysisToolStartEvent {
+  phase: AnalysisPhase
+  tool: string
+}
+
+export interface AnalysisFindingEvent {
+  phase: AnalysisPhase
+  finding: Finding | SemanticFinding
+}
+
+export interface AnalysisReporter {
+  onToolStart?(event: AnalysisToolStartEvent): void
+  onFinding?(event: AnalysisFindingEvent): void
+}
+
 /** The full analysis report returned by StaticAnalyzer.analyze() */
 export interface StaticReport {
   server: string
@@ -37,6 +54,8 @@ export interface StaticAnalyzerConfig {
   platform?: boolean
   /** Warn when tool count exceeds this threshold. Default: 20 */
   maxTools?: number
+  /** Receives per-tool progress and findings as the scan runs. */
+  reporter?: AnalysisReporter
 }
 
 export interface SemanticFinding {

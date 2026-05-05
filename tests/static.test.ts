@@ -83,6 +83,25 @@ describe('StaticAnalyzer', () => {
       const report = analyzer.analyze('test-server', clean)
       expect(report.findings).toHaveLength(0)
     })
+
+    it('reports per-tool progress and findings as static checks run', () => {
+      const toolStarts: string[] = []
+      const findingCodes: string[] = []
+
+      new StaticAnalyzer({
+        reporter: {
+          onToolStart(event) {
+            toolStarts.push(event.tool)
+          },
+          onFinding(event) {
+            findingCodes.push(event.finding.code)
+          },
+        },
+      }).analyze('test-server', paramConflicts)
+
+      expect(toolStarts).toEqual(['get_stock_price', 'get_earnings'])
+      expect(findingCodes).toContain('PARAMETER_CONFLICT')
+    })
   })
 
   describe('checkDuplicateNames', () => {
