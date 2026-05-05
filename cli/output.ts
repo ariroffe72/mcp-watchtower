@@ -16,7 +16,6 @@ interface ProgressReporterOptions {
 }
 
 interface HumanReportOptions {
-  includeDetailedFindings?: boolean
   writer?: Writer
 }
 
