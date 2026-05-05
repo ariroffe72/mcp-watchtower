@@ -29,10 +29,19 @@ export interface AnalysisToolStartEvent {
   tool: string
 }
 
-export interface AnalysisFindingEvent {
-  phase: AnalysisPhase
-  finding: Finding | SemanticFinding
+export interface StaticAnalysisFindingEvent {
+  phase: 'static'
+  finding: Finding
 }
+
+export interface SemanticAnalysisFindingEvent {
+  phase: 'semantic'
+  finding: SemanticFinding
+}
+
+export type AnalysisFindingEvent =
+  | StaticAnalysisFindingEvent
+  | SemanticAnalysisFindingEvent
 
 export interface AnalysisReporter {
   onToolStart?(event: AnalysisToolStartEvent): void
