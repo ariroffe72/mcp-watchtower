@@ -10,7 +10,7 @@ Analyze MCP servers for naming, routing, and semantic tool conflicts.
 
 ## Overview
 
-![MCP Watchtower Workflow](docs/assets/diagrams/mcp-watchtower-workflow.png)
+![MCP Watchtower Workflow](https://raw.githubusercontent.com/ariroffe72/mcp-watchtower/main/docs/assets/diagrams/mcp-watchtower-workflow.png)
 
 > Figure: MCP Watchtower performs static validation and semantic comparison against a continuously updated MCP corpus to detect collisions and quality issues.
 
