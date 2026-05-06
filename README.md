@@ -2,22 +2,19 @@
 
 Analyze MCP servers for naming, routing, and semantic tool conflicts.
 
-**Docs:** https://self-5d39fc87.mintlify.app/
-
-`mcp-watchtower` can inspect a live MCP server, a remote MCP endpoint, or a JSON tool manifest and produce:
-
-- **static findings** for duplicate names, naming inconsistencies, parameter conflicts, shadow patterns, and oversized tool surfaces
-- **semantic findings** for tools that already exist in the broader MCP corpus or are likely to overlap with existing tools
-
 ![Index refresh](https://github.com/ariroffe72/mcp-watchtower/actions/workflows/refresh-index.yml/badge.svg)
+
 ![Index updated](https://img.shields.io/badge/dynamic/json?url=https://pub-0eeb51ca45a14ebe89372cca3f4bea7f.r2.dev/manifest.json&query=$.version&label=index%20updated&color=blue)
 
-## Start here
+**Docs:** https://self-5d39fc87.mintlify.app/
 
-- [Get started](https://self-5d39fc87.mintlify.app/introduction)
-- [CLI reference](https://self-5d39fc87.mintlify.app/cli/scan)
-- [Checks overview](https://self-5d39fc87.mintlify.app/checks/overview)
-- [API reference](https://self-5d39fc87.mintlify.app/api/overview)
+## Overview
+
+![MCP Watchtower Workflow](docs/assets/diagrams/mcp-watchtower-workflow.png)
+
+> Figure: MCP Watchtower performs static validation and semantic comparison against a continuously updated MCP corpus to detect collisions and quality issues.
+
+`mcp-watchtower` analyzes an MCP server (local, remote, or manifest) and produces two types of findings:
 
 ## Quick start
 
@@ -27,9 +24,16 @@ npx mcp-watchtower scan --server "uvx my-server"
 
 By default, a scan runs both the deterministic static checks and the deeper semantic analysis pass.
 
-Human-readable scans now stream phase progress with concise per-tool updates, summarize findings by tool at the end, label informational corpus matches as notes, and derive manifest scan names from the manifest filename. `--json` keeps output machine-readable by emitting only the final JSON payload, while `--verbose` adds live finding details plus a detailed replay section.
+Human-readable scans now stream the current tool name and any findings as they are discovered, include phase headers, and repeat the findings in the final report. `--json` keeps output machine-readable by emitting only the final JSON payload.
 
-## CLI
+## Learn more
+
+- [Get started](https://self-5d39fc87.mintlify.app/introduction)
+- [CLI reference](https://self-5d39fc87.mintlify.app/cli/scan)
+- [Checks overview](https://self-5d39fc87.mintlify.app/checks/overview)
+- [API reference](https://self-5d39fc87.mintlify.app/api/overview)
+
+## CLI Usage
 
 ```bash
 # Local MCP server over stdio
@@ -87,6 +91,13 @@ npx mcp-watchtower scan --server "uvx my-server" --threshold 0.8
 
 Plain `scan` runs both layers. Use `--syntactic` for only the deterministic checks or `--semantic` for only the deeper semantic pass.
 
+## Exit codes
+
+- `0` — no critical static findings
+- `1` — one or more critical static findings
+
+Semantic findings are informational or warning-level only and do **not** affect the exit code.
+
 ## Index behavior
 
 Semantic analysis ships with a bundled fallback index in `src/data/`.
@@ -99,14 +110,7 @@ On CLI startup, `mcp-watchtower` also checks the published CDN manifest and, if 
 
 If the CDN is unavailable or the update fails, scans continue silently with the bundled index.
 
-## Exit codes
-
-- `0` — no critical static findings
-- `1` — one or more critical static findings
-
-Semantic findings are informational or warning-level only and do **not** affect the exit code.
-
-## Library usage
+## Programmatic usage
 
 ```ts
 import { SemanticAnalyzer, StaticAnalyzer } from 'mcp-watchtower'
@@ -115,7 +119,7 @@ const staticReport = new StaticAnalyzer().analyze('my-server', tools)
 const semanticReport = await new SemanticAnalyzer().analyze('my-server', tools)
 ```
 
-## Developer workflow
+## Development
 
 ```bash
 npm run build
@@ -150,13 +154,6 @@ node dist/cli/index.js scan --server "uvx my-server"
 2. Merge the PR into `main`.
 3. The `release.yml` workflow will open or update a `chore: release package` PR with the version bump and changelog changes.
 4. Merge that release PR to publish the package to npm and create the matching GitHub Release.
-
-### First-time setup
-
-1. Create an npm access token that can publish `mcp-watchtower`.
-2. Save it as the repository secret `NPM_TOKEN`.
-3. Ensure the package name is available on npm and that the publishing account has access to it.
-4. Let GitHub Actions handle tags and GitHub Releases through the built-in `GITHUB_TOKEN`.
 
 ### Release requirements
 
