@@ -10,15 +10,16 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write
   id-token: write
-  pull-requests: write
 
 jobs:
   release:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-node@v4
         with:
@@ -27,15 +28,78 @@ jobs:
 
       - run: npm ci
 
-      - name: Create release pull request or publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: npm run version-packages
-          publish: npm run release
-          commit: 'chore: release package'
-          title: 'chore: release package'
-          createGithubReleases: true
+      - name: Capture current package version
+        id: version_before
+        run: |
+          echo "value=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Configure release git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Apply pending changesets
+        run: npm run version-packages
+
+      - name: Capture release candidate version
+        id: version_after
+        run: |
+          echo "value=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Refresh package lock for new package version
+        if: steps.version_before.outputs.value != steps.version_after.outputs.value
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Detect repository changes
+        id: repo_changes
+        run: |
+          if git diff --quiet --exit-code; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ "${{ steps.version_before.outputs.value }}" = "${{ steps.version_after.outputs.value }}" ]; then
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check whether this version is already on npm
+        id: npm_release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE_NAME: mcp-watchtower
+          PACKAGE_VERSION: ${{ steps.version_after.outputs.value }}
+        run: |
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version --registry=https://registry.npmjs.org > /dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate release artifact
+        if: steps.npm_release.outputs.published == 'false'
+        run: npm run release:check
+
+      - name: Commit release changes
+        if: steps.repo_changes.outputs.has_changes == 'true'
+        env:
+          VERSION_CHANGED: ${{ steps.repo_changes.outputs.version_changed }}
+          PACKAGE_VERSION: ${{ steps.version_after.outputs.value }}
+        run: |
+          git add -A
+          if [ "$VERSION_CHANGED" = "true" ]; then
+            git commit -m "chore: release package v$PACKAGE_VERSION"
+          else
+            git commit -m "chore: consume empty changesets"
+          fi
+
+      - name: Push release changes
+        if: steps.repo_changes.outputs.has_changes == 'true'
+        run: git push origin HEAD:main
+
+      - name: Publish package to npm
+        if: steps.npm_release.outputs.published == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
