@@ -16,6 +16,9 @@ Analyze MCP servers for naming, routing, and semantic tool conflicts.
 
 `mcp-watchtower` analyzes an MCP server (local, remote, or manifest) and produces two types of findings:
 
+- **Static findings** from deterministic checks for naming, routing, and other structural issues.
+- **Semantic findings** from deeper comparison against the MCP corpus to detect tool conflicts and overlap.
+
 ## Quick start
 
 ```bash
