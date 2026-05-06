@@ -126,4 +126,25 @@ describe('ParameterSemanticAnalyzer', () => {
 
     expect(findings).toHaveLength(0)
   })
+
+  it('reports current tools and findings during semantic parameter analysis', async () => {
+    const toolStarts: string[] = []
+    const findingCodes: string[] = []
+
+    await new ParameterSemanticAnalyzer({
+      threshold: 0.9,
+      embedFn: fakeEmbedder,
+      reporter: {
+        onToolStart(event) {
+          toolStarts.push(event.tool)
+        },
+        onFinding(event) {
+          findingCodes.push(event.finding.code)
+        },
+      },
+    }).analyze('portfolio-server', nicheConflictTools)
+
+    expect(toolStarts).toEqual(['list_portfolios', 'summarize_allocations'])
+    expect(findingCodes).toEqual(['SEMANTIC_PARAMETER_CONFLICT'])
+  })
 })

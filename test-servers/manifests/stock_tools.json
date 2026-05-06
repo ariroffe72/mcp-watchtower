@@ -1,0 +1,16 @@
+{
+    "tools": [{
+        "name": "get_stock_quote",
+        "description": "Fetch the current stock market quote for an individual ticker symbol. Returns real-time price, intraday change (dollars and percentage), trading volume, market capitalization, P/E ratio, earnings per share, dividend yield, and 52-week high/low. Use for real-time price monitoring, investment decisions, or financial dashboards.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "quote": {
+                    "type": "string",
+                    "description": "Ticker symbol for the stock"
+                },
+                "required": ["quote"]
+            }
+        }
+    }]
+}

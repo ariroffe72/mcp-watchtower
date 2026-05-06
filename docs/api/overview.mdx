@@ -36,6 +36,11 @@ The package surface is intentionally small. Everything you need is available fro
 ```typescript
 import { SemanticAnalyzer, StaticAnalyzer } from 'mcp-watchtower'
 import type {
+  AnalysisPhase,
+  AnalysisReporter,
+  AnalysisPhaseCompleteEvent,
+  AnalysisToolStartEvent,
+  AnalysisFindingEvent,
   Finding,
   SemanticFinding,
   SemanticReport,
@@ -50,11 +55,16 @@ import type {
 | `StaticAnalyzer` | Class | Runs all five static checks against a set of tool definitions. |
 | `SemanticAnalyzer` | Class | Compares tool descriptions against the semantic corpus and reports likely overlaps. |
 | `ToolSchema` | Type | Shape of a single tool definition as declared in an MCP server manifest. |
-| `Finding` | Type | A single issue produced by the analyzer. |
+| `Finding` | Type | A single static finding with severity, code, message, and optional tool references. |
 | `SemanticFinding` | Type | A single semantic overlap result produced by `SemanticAnalyzer`. |
-| `StaticReport` | Type | The full analysis result returned by `analyze()`. |
-| `SemanticReport` | Type | The semantic analysis result returned by `SemanticAnalyzer.analyze()`. |
-| `StaticAnalyzerConfig` | Type | Configuration options passed to the `StaticAnalyzer` constructor. |
+| `StaticReport` | Type | Full static scan output with server name, tool count, findings, and completion timestamp. |
+| `SemanticReport` | Type | Full semantic scan output with server name, tool count, findings, and scan timestamp. |
+| `StaticAnalyzerConfig` | Type | Static analyzer options including `platform`, `maxTools`, and an optional progress `reporter`. |
+| `AnalysisPhase` | Type | The scan phase identifier: `static` or `semantic`. |
+| `AnalysisReporter` | Type | Optional callback interface for live `onToolStart`, `onFinding`, and `onPhaseComplete` scan events. |
+| `AnalysisPhaseCompleteEvent` | Type | Event payload emitted when a scan phase finishes with its tool and finding counts. |
+| `AnalysisToolStartEvent` | Type | Event payload emitted when a tool begins analysis for a given phase. |
+| `AnalysisFindingEvent` | Type | Event payload emitted when a static or semantic finding is produced. |
 
 ## Quick example
 

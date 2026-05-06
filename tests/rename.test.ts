@@ -24,6 +24,7 @@ describe('package rename metadata', () => {
     expect(cli).toContain("{ name: 'mcp-watchtower', version: '0.1.0' }")
     expect(cli).toContain(".option('--syntactic'")
     expect(cli).toContain(".option('--semantic'")
+    expect(cli).toContain(".option('-v, --verbose'")
   })
 
   it('documents npx as the primary CLI entrypoint', () => {
@@ -32,6 +33,7 @@ describe('package rename metadata', () => {
     expect(readme).toContain('npx mcp-watchtower scan --server "uvx my-server"')
     expect(readme).toContain('npx mcp-watchtower scan --server "uvx my-server" --syntactic')
     expect(readme).toContain('npx mcp-watchtower scan --server "uvx my-server" --semantic')
+    expect(readme).toContain('npx mcp-watchtower scan --server "uvx my-server" --verbose')
     expect(readme).toContain('npx mcp-watchtower scan --remote "https://api.example.com/mcp"')
     expect(readme).toContain('npx mcp-watchtower scan --remote "https://api.example.com/mcp" --auth-token "$MCP_TOKEN"')
     expect(readme).toContain('npx mcp-watchtower scan --manifest ./tools.json --name my-server')

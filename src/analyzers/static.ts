@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Finding, StaticAnalyzerConfig, StaticReport, ToolSchema } from '../types.js'
+import type { AnalysisPhase, Finding, StaticAnalyzerConfig, StaticReport, ToolSchema } from '../types.js'
 import { normalizeParameterName } from './parameter-normalization.js'
 
 interface ShadowPatternEntry {
@@ -61,13 +61,26 @@ export class StaticAnalyzer {
    * @returns StaticReport containing all findings
    */
   analyze(serverName: string, tools: ToolSchema[]): StaticReport {
-    const findings: Finding[] = [
-      ...this.checkDuplicateNames(tools),
-      ...this.checkNamingConvention(tools),
-      ...this.checkParameterConflicts(tools),
-      ...this.checkShadowPatterns(tools),
-      ...this.checkToolCount(tools),
-    ]
+    const findings: Finding[] = []
+    const duplicateCounts = countToolNames(tools)
+    const majorityConvention = determineMajorityConvention(tools)
+    const emittedDuplicateNames = new Set<string>()
+
+    for (let index = 0; index < tools.length; index += 1) {
+      const tool = tools[index]
+      this.reportToolStart(tool.name)
+      this.recordFindings(findings, this.checkDuplicateName(tool, duplicateCounts, emittedDuplicateNames))
+      this.recordFindings(findings, this.checkNamingConvention(tool, majorityConvention))
+      this.recordFindings(findings, this.checkParameterConflicts(tool, index, tools))
+      this.recordFindings(findings, this.checkShadowPatterns(tool))
+    }
+
+    this.recordFindings(findings, this.checkToolCount(tools))
+    this.config.reporter?.onPhaseComplete?.({
+      phase: 'static',
+      toolCount: tools.length,
+      findingCount: findings.length,
+    })
 
     return {
       server: serverName,
@@ -77,29 +90,44 @@ export class StaticAnalyzer {
     }
   }
 
+  private recordFindings(target: Finding[], next: Finding[]): void {
+    target.push(...next)
+
+    for (const finding of next) {
+      this.config.reporter?.onFinding?.({
+        phase: 'static',
+        finding,
+      })
+    }
+  }
+
+  private reportToolStart(tool: string): void {
+    this.config.reporter?.onToolStart?.({
+      phase: 'static' satisfies AnalysisPhase,
+      tool,
+    })
+  }
+
   /**
    * Check 1: detect duplicate tool names within the server.
    * Returns a critical finding for each name that appears more than once.
    * Finding code: DUPLICATE_TOOL_NAME
    */
-  private checkDuplicateNames(tools: ToolSchema[]): Finding[] {
-    const counts = new Map<string, number>()
-    for (const tool of tools) {
-      counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1)
-    }
+  private checkDuplicateName(
+    tool: ToolSchema,
+    counts: Map<string, number>,
+    emitted: Set<string>,
+  ): Finding[] {
+    const count = counts.get(tool.name) ?? 0
+    if (count <= 1 || emitted.has(tool.name)) return []
 
-    const findings: Finding[] = []
-    for (const [name, count] of counts) {
-      if (count > 1) {
-        findings.push({
-          code: 'DUPLICATE_TOOL_NAME',
-          severity: 'critical',
-          tool: name,
-          message: `Tool name '${name}' is defined ${count} times in this server`,
-        })
-      }
-    }
-    return findings
+    emitted.add(tool.name)
+    return [{
+      code: 'DUPLICATE_TOOL_NAME',
+      severity: 'critical',
+      tool: tool.name,
+      message: `Tool name '${tool.name}' is defined ${count} times in this server`,
+    }]
   }
 
   /**
@@ -109,36 +137,18 @@ export class StaticAnalyzer {
    * Finding code: NAMING_CONVENTION
    * Severity: warning
    */
-  private checkNamingConvention(tools: ToolSchema[]): Finding[] {
-    const counts = new Map<Exclude<Convention, 'unknown'>, number>(
-      CONVENTION_PRIORITY.map(c => [c, 0])
-    )
+  private checkNamingConvention(tool: ToolSchema, majority: Convention | null): Finding[] {
+    if (majority === null) return []
 
-    for (const tool of tools) {
-      const conv = detectConvention(tool.name)
-      if (conv !== 'unknown') {
-        counts.set(conv, (counts.get(conv) ?? 0) + 1)
-      }
-    }
+    const detected = detectConvention(tool.name)
+    if (detected === 'unknown' || detected === majority) return []
 
-    const maxCount = Math.max(...counts.values())
-    if (maxCount === 0) return []
-
-    const majority = CONVENTION_PRIORITY.find(c => counts.get(c) === maxCount)!
-
-    const findings: Finding[] = []
-    for (const tool of tools) {
-      const detected = detectConvention(tool.name)
-      if (detected !== 'unknown' && detected !== majority) {
-        findings.push({
-          code: 'NAMING_CONVENTION',
-          severity: 'warning',
-          tool: tool.name,
-          message: `Tool '${tool.name}' uses ${detected} but majority convention is ${majority}`,
-        })
-      }
-    }
-    return findings
+    return [{
+      code: 'NAMING_CONVENTION',
+      severity: 'warning',
+      tool: tool.name,
+      message: `Tool '${tool.name}' uses ${detected} but majority convention is ${majority}`,
+    }]
   }
 
   /**
@@ -148,40 +158,37 @@ export class StaticAnalyzer {
    * Finding code: PARAMETER_CONFLICT
    * Severity: warning
    */
-  private checkParameterConflicts(tools: ToolSchema[]): Finding[] {
+  private checkParameterConflicts(toolA: ToolSchema, toolAIndex: number, tools: ToolSchema[]): Finding[] {
     const findings: Finding[] = []
     const seen = new Set<string>()
 
-    for (let i = 0; i < tools.length; i++) {
-      const toolA = tools[i]
-      const paramsA = Object.keys(toolA.inputSchema?.properties ?? {})
-      if (paramsA.length === 0) continue
+    const paramsA = Object.keys(toolA.inputSchema?.properties ?? {})
+    if (paramsA.length === 0) return findings
 
-      for (let j = i + 1; j < tools.length; j++) {
-        const toolB = tools[j]
-        const paramsB = Object.keys(toolB.inputSchema?.properties ?? {})
-        if (paramsB.length === 0) continue
+    for (let j = toolAIndex + 1; j < tools.length; j += 1) {
+      const toolB = tools[j]
+      const paramsB = Object.keys(toolB.inputSchema?.properties ?? {})
+      if (paramsB.length === 0) continue
 
-        for (const paramA of paramsA) {
-          const normalizedA = normalizeParameterName(paramA)
+      for (const paramA of paramsA) {
+        const normalizedA = normalizeParameterName(paramA)
 
-          for (const paramB of paramsB) {
-            if (paramA === paramB) continue
+        for (const paramB of paramsB) {
+          if (paramA === paramB) continue
 
-            const normalizedB = normalizeParameterName(paramB)
-            const seenKey = [toolA.name, toolB.name].sort().join(':') + ':' + normalizedA
+          const normalizedB = normalizeParameterName(paramB)
+          const seenKey = `${toolAIndex}:${j}:${normalizedA}`
 
-            if (seen.has(seenKey) || normalizedA !== normalizedB) continue
+          if (seen.has(seenKey) || normalizedA !== normalizedB) continue
 
-            seen.add(seenKey)
-            findings.push({
-              code: 'PARAMETER_CONFLICT',
-              severity: 'warning',
-              tool: toolA.name,
-              relatedTool: toolB.name,
-              message: `Parameter '${paramA}' in '${toolA.name}' and '${paramB}' in '${toolB.name}' likely refer to the same concept — consider using consistent naming`,
-            })
-          }
+          seen.add(seenKey)
+          findings.push({
+            code: 'PARAMETER_CONFLICT',
+            severity: 'warning',
+            tool: toolA.name,
+            relatedTool: toolB.name,
+            message: `Parameter '${paramA}' in '${toolA.name}' and '${paramB}' in '${toolB.name}' likely refer to the same concept — consider using consistent naming`,
+          })
         }
       }
     }
@@ -196,21 +203,19 @@ export class StaticAnalyzer {
    * Finding code: SHADOW_PATTERN
    * Severity: warning (critical if the matched pattern is marked critical)
    */
-  private checkShadowPatterns(tools: ToolSchema[]): Finding[] {
+  private checkShadowPatterns(tool: ToolSchema): Finding[] {
     const findings: Finding[] = []
 
-    for (const tool of tools) {
-      for (const pattern of this.shadowPatterns) {
-        if (pattern.regex.test(tool.description)) {
-          const desc = tool.description
-          const excerpt = desc.length > 60 ? desc.slice(0, 57) + '...' : desc
-          findings.push({
-            code: 'SHADOW_PATTERN',
-            severity: pattern.severity,
-            tool: tool.name,
-            message: `Tool "${tool.name}" contains ${pattern.risk} pattern: "${excerpt}"`,
-          })
-        }
+    for (const pattern of this.shadowPatterns) {
+      if (pattern.regex.test(tool.description)) {
+        const desc = tool.description
+        const excerpt = desc.length > 60 ? desc.slice(0, 57) + '...' : desc
+        findings.push({
+          code: 'SHADOW_PATTERN',
+          severity: pattern.severity,
+          tool: tool.name,
+          message: `Tool "${tool.name}" contains ${pattern.risk} pattern: "${excerpt}"`,
+        })
       }
     }
 
@@ -233,4 +238,32 @@ export class StaticAnalyzer {
       message: `Server has ${tools.length} tools which exceeds the recommended maximum of ${max}. Consider splitting into focused sub-servers.`,
     }]
   }
+}
+
+function countToolNames(tools: ToolSchema[]): Map<string, number> {
+  const counts = new Map<string, number>()
+
+  for (const tool of tools) {
+    counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1)
+  }
+
+  return counts
+}
+
+function determineMajorityConvention(tools: ToolSchema[]): Convention | null {
+  const counts = new Map<Exclude<Convention, 'unknown'>, number>(
+    CONVENTION_PRIORITY.map(convention => [convention, 0]),
+  )
+
+  for (const tool of tools) {
+    const convention = detectConvention(tool.name)
+    if (convention !== 'unknown') {
+      counts.set(convention, (counts.get(convention) ?? 0) + 1)
+    }
+  }
+
+  const maxCount = Math.max(...counts.values())
+  if (maxCount === 0) return null
+
+  return CONVENTION_PRIORITY.find(convention => counts.get(convention) === maxCount) ?? null
 }

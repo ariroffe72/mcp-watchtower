@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { embed, EMBEDDING_DIMENSIONS } from '../embeddings/provider.js'
-import type { SemanticFinding, SemanticReport, ToolSchema } from '../types.js'
+import type { AnalysisPhase, AnalysisReporter, SemanticFinding, SemanticReport, ToolSchema } from '../types.js'
 import { ParameterSemanticAnalyzer } from './parameter-semantic.js'
 
 const require = createRequire(import.meta.url)
@@ -24,12 +24,14 @@ interface SemanticAnalyzerConfig {
   threshold?: number
   topK?: number
   parameterThreshold?: number
+  reporter?: AnalysisReporter
 }
 
 export class SemanticAnalyzer {
   private readonly threshold: number
   private readonly topK: number
   private readonly parameterThreshold: number
+  private readonly reporter?: AnalysisReporter
   private readonly index: import('hnswlib-node').HierarchicalNSW
   private readonly metadata: SemanticMetadata[]
 
@@ -39,6 +41,7 @@ export class SemanticAnalyzer {
     this.parameterThreshold = Number.isFinite(config.parameterThreshold)
       ? Number(config.parameterThreshold)
       : Math.max(this.threshold, 0.88)
+    this.reporter = config.reporter
 
     const metadataPath = resolveIndexPath('semantic-meta.json')
     const indexPath = resolveIndexPath('semantic.hnsw')
@@ -58,21 +61,34 @@ export class SemanticAnalyzer {
 
   async analyze(serverName: string, tools: ToolSchema[]): Promise<SemanticReport> {
     const findings: SemanticFinding[] = []
-    const parameterFindings = await new ParameterSemanticAnalyzer({
+    const parameterAnalyzer = new ParameterSemanticAnalyzer({
       threshold: this.parameterThreshold,
-    }).analyze(serverName, tools)
+      reporter: this.reporter,
+      emitToolStarts: false,
+    })
+    const parameterContext = parameterAnalyzer.createContext(tools)
     const neighborCount = Math.min(this.topK, this.metadata.length)
 
     if (neighborCount === 0) {
+      for (let toolIndex = 0; toolIndex < tools.length; toolIndex += 1) {
+        this.reportToolStart(tools[toolIndex].name)
+        findings.push(...await parameterAnalyzer.analyzeTool(serverName, tools, toolIndex, parameterContext))
+      }
+
+      this.reportPhaseComplete(tools.length, findings.length)
       return {
         server: serverName,
         toolCount: tools.length,
-        findings: parameterFindings,
+        findings,
         scannedAt: new Date().toISOString(),
       }
     }
 
-    for (const tool of tools) {
+    for (let toolIndex = 0; toolIndex < tools.length; toolIndex += 1) {
+      const tool = tools[toolIndex]
+      this.reportToolStart(tool.name)
+      findings.push(...await parameterAnalyzer.analyzeTool(serverName, tools, toolIndex, parameterContext))
+
       const description = tool.description.trim()
       if (description.length === 0) {
         continue
@@ -94,16 +110,41 @@ export class SemanticAnalyzer {
           continue
         }
 
-        findings.push(buildFinding(tool, matched, similarity))
+        const finding = buildFinding(tool, matched, similarity)
+        findings.push(finding)
+        this.reportFinding(finding)
       }
     }
 
+    this.reportPhaseComplete(tools.length, findings.length)
     return {
       server: serverName,
       toolCount: tools.length,
-      findings: [...parameterFindings, ...findings],
+      findings,
       scannedAt: new Date().toISOString(),
     }
+  }
+
+  private reportToolStart(tool: string): void {
+    this.reporter?.onToolStart?.({
+      phase: 'semantic' satisfies AnalysisPhase,
+      tool,
+    })
+  }
+
+  private reportFinding(finding: SemanticFinding): void {
+    this.reporter?.onFinding?.({
+      phase: 'semantic',
+      finding,
+    })
+  }
+
+  private reportPhaseComplete(toolCount: number, findingCount: number): void {
+    this.reporter?.onPhaseComplete?.({
+      phase: 'semantic',
+      toolCount,
+      findingCount,
+    })
   }
 }
 
