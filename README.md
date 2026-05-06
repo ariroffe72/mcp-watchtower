@@ -27,7 +27,7 @@ npx mcp-watchtower scan --server "uvx my-server"
 
 By default, a scan runs both the deterministic static checks and the deeper semantic analysis pass.
 
-Human-readable scans now stream the current tool name and any findings as they are discovered, include phase headers, and repeat the findings in the final report. `--json` keeps output machine-readable by emitting only the final JSON payload.
+Human-readable scans print findings after analysis completes. When using `--json`, stdout contains the final JSON payload, but progress and status messages may still be written to stderr.
 
 ## Learn more
 
