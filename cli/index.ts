@@ -10,6 +10,7 @@ import type { ToolSchema } from '../src/index.js'
 import chalk from 'chalk'
 import {
   deriveServerNameFromCommand,
+  deriveServerNameFromManifest,
   deriveServerNameFromUrl,
   resolveInputMode,
   type ScanInputOptions,
@@ -87,7 +88,9 @@ program
           semanticFindings,
         }, null, 2) + '\n')
       } else {
-        printHuman(staticReport.server, staticReport.toolCount, staticReport.findings, semanticFindings)
+        printHuman(staticReport.server, staticReport.toolCount, staticReport.findings, semanticFindings, {
+          verbose: options.verbose,
+        })
       }
       process.exit(hasCritical ? 1 : 0)
     } catch (err) {
@@ -123,7 +126,7 @@ async function resolveTools(options: {
 
   if (mode === 'manifest') {
     const tools = parseToolsJson(readFileSync(options.manifest!, 'utf-8'))
-    const serverName = options.name ?? 'unknown-server'
+    const serverName = options.name ?? deriveServerNameFromManifest(options.manifest!)
     return { tools, serverName }
   }
 
@@ -272,4 +275,3 @@ function parseThreshold(value: string): number {
 
   return parsed
 }
-

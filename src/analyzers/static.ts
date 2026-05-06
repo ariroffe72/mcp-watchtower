@@ -76,6 +76,11 @@ export class StaticAnalyzer {
     }
 
     this.recordFindings(findings, this.checkToolCount(tools))
+    this.config.reporter?.onPhaseComplete?.({
+      phase: 'static',
+      toolCount: tools.length,
+      findingCount: findings.length,
+    })
 
     return {
       server: serverName,

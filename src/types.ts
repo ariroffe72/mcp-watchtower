@@ -29,6 +29,12 @@ export interface AnalysisToolStartEvent {
   tool: string
 }
 
+export interface AnalysisPhaseCompleteEvent {
+  phase: AnalysisPhase
+  toolCount: number
+  findingCount: number
+}
+
 export interface StaticAnalysisFindingEvent {
   phase: 'static'
   finding: Finding
@@ -46,6 +52,7 @@ export type AnalysisFindingEvent =
 export interface AnalysisReporter {
   onToolStart?(event: AnalysisToolStartEvent): void
   onFinding?(event: AnalysisFindingEvent): void
+  onPhaseComplete?(event: AnalysisPhaseCompleteEvent): void
 }
 
 /** The full analysis report returned by StaticAnalyzer.analyze() */

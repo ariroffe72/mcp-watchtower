@@ -87,6 +87,7 @@ describe('StaticAnalyzer', () => {
     it('reports per-tool progress and findings as static checks run', () => {
       const toolStarts: string[] = []
       const findingCodes: string[] = []
+      const phaseCompletions: number[] = []
 
       new StaticAnalyzer({
         reporter: {
@@ -96,11 +97,15 @@ describe('StaticAnalyzer', () => {
           onFinding(event) {
             findingCodes.push(event.finding.code)
           },
+          onPhaseComplete(event) {
+            phaseCompletions.push(event.findingCount)
+          },
         },
       }).analyze('test-server', paramConflicts)
 
       expect(toolStarts).toEqual(['get_stock_price', 'get_earnings'])
       expect(findingCodes).toContain('PARAMETER_CONFLICT')
+      expect(phaseCompletions).toEqual([1])
     })
   })
 

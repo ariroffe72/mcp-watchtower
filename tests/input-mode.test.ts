@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   deriveServerNameFromCommand,
+  deriveServerNameFromManifest,
   deriveServerNameFromUrl,
   resolveInputMode,
 } from '../cli/input.js'
@@ -50,5 +51,10 @@ describe('server name derivation', () => {
   it('derives URL-based names for /mcp endpoints and custom paths', () => {
     expect(deriveServerNameFromUrl('https://api.example.com/mcp')).toBe('api.example.com')
     expect(deriveServerNameFromUrl('https://api.example.com/tools')).toBe('api.example.com-tools')
+  })
+
+  it('derives manifest-based names from the manifest filename', () => {
+    expect(deriveServerNameFromManifest('.\\manifests\\stock_tools.json')).toBe('stock_tools')
+    expect(deriveServerNameFromManifest('C:\\mcp\\tools\\yahoo-finance.json')).toBe('yahoo-finance')
   })
 })

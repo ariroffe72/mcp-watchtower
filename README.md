@@ -27,7 +27,7 @@ npx mcp-watchtower scan --server "uvx my-server"
 
 By default, a scan runs both the deterministic static checks and the deeper semantic analysis pass.
 
-Human-readable scans now stream the current tool name and any findings as they are discovered, include phase headers, and repeat the findings in the final report. `--json` keeps output machine-readable by emitting only the final JSON payload.
+Human-readable scans now stream phase progress with concise per-tool updates, summarize findings by tool at the end, label informational corpus matches as notes, and derive manifest scan names from the manifest filename. `--json` keeps output machine-readable by emitting only the final JSON payload, while `--verbose` adds live finding details plus a detailed replay section.
 
 ## CLI
 
@@ -60,7 +60,7 @@ npx mcp-watchtower scan --server "uvx my-server" --syntactic
 # Semantic-only scan
 npx mcp-watchtower scan --server "uvx my-server" --semantic
 
-# Reserved for future expanded scan logging
+# Expanded human-readable logging
 npx mcp-watchtower scan --server "uvx my-server" --verbose
 
 # Tune semantic sensitivity
@@ -193,4 +193,3 @@ npm run pack:check
 ## Semantic index releases
 
 The semantic index is intentionally released on its own cadence. `.github/workflows/refresh-index.yml` continues to rebuild and publish the Cloudflare R2 assets independently of npm package releases.
-

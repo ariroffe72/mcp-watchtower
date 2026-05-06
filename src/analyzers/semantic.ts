@@ -75,6 +75,7 @@ export class SemanticAnalyzer {
         findings.push(...await parameterAnalyzer.analyzeTool(serverName, tools, toolIndex, parameterContext))
       }
 
+      this.reportPhaseComplete(tools.length, findings.length)
       return {
         server: serverName,
         toolCount: tools.length,
@@ -115,6 +116,7 @@ export class SemanticAnalyzer {
       }
     }
 
+    this.reportPhaseComplete(tools.length, findings.length)
     return {
       server: serverName,
       toolCount: tools.length,
@@ -134,6 +136,14 @@ export class SemanticAnalyzer {
     this.reporter?.onFinding?.({
       phase: 'semantic',
       finding,
+    })
+  }
+
+  private reportPhaseComplete(toolCount: number, findingCount: number): void {
+    this.reporter?.onPhaseComplete?.({
+      phase: 'semantic',
+      toolCount,
+      findingCount,
     })
   }
 }

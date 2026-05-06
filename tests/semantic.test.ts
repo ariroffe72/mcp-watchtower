@@ -63,6 +63,7 @@ describe('SemanticAnalyzer', () => {
     const { SemanticAnalyzer } = await import('../src/analyzers/semantic.js')
     const toolStarts: string[] = []
     const findingCodes: string[] = []
+    const phaseCompletions: number[] = []
     const tools: ToolSchema[] = [
       {
         name: 'get_stock_price',
@@ -82,11 +83,15 @@ describe('SemanticAnalyzer', () => {
         onFinding(event) {
           findingCodes.push(event.finding.code)
         },
+        onPhaseComplete(event) {
+          phaseCompletions.push(event.findingCount)
+        },
       },
     }).analyze('demo-server', tools)
 
     expect(toolStarts).toEqual(['get_stock_price', 'get_company_info'])
     expect(findingCodes).toContain('SEMANTIC_OVERLAP')
     expect(report.findings.some(finding => finding.code === 'SEMANTIC_OVERLAP')).toBe(true)
+    expect(phaseCompletions).toEqual([report.findings.length])
   })
 })

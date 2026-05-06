@@ -3,6 +3,7 @@ export { SemanticAnalyzer } from './analyzers/semantic.js'
 export type {
   AnalysisPhase,
   AnalysisReporter,
+  AnalysisPhaseCompleteEvent,
   AnalysisToolStartEvent,
   AnalysisFindingEvent,
   ToolSchema,

@@ -38,6 +38,7 @@ import { SemanticAnalyzer, StaticAnalyzer } from 'mcp-watchtower'
 import type {
   AnalysisPhase,
   AnalysisReporter,
+  AnalysisPhaseCompleteEvent,
   AnalysisToolStartEvent,
   AnalysisFindingEvent,
   Finding,
@@ -60,7 +61,8 @@ import type {
 | `SemanticReport` | Type | Full semantic scan output with server name, tool count, findings, and scan timestamp. |
 | `StaticAnalyzerConfig` | Type | Static analyzer options including `platform`, `maxTools`, and an optional progress `reporter`. |
 | `AnalysisPhase` | Type | The scan phase identifier: `static` or `semantic`. |
-| `AnalysisReporter` | Type | Optional callback interface for live `onToolStart` and `onFinding` scan events. |
+| `AnalysisReporter` | Type | Optional callback interface for live `onToolStart`, `onFinding`, and `onPhaseComplete` scan events. |
+| `AnalysisPhaseCompleteEvent` | Type | Event payload emitted when a scan phase finishes with its tool and finding counts. |
 | `AnalysisToolStartEvent` | Type | Event payload emitted when a tool begins analysis for a given phase. |
 | `AnalysisFindingEvent` | Type | Event payload emitted when a static or semantic finding is produced. |
 
