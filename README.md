@@ -155,13 +155,12 @@ node dist/cli/index.js scan --server "uvx my-server"
    ```
 
 2. Merge the PR into `main`.
-3. The `release.yml` workflow will open or update a `chore: release package` PR with the version bump and changelog changes.
-4. Merge that release PR to publish the package to npm and create the matching GitHub Release.
+3. The `release.yml` workflow will apply pending changesets on `main`, commit the version bump back to `main`, and publish the new package version to npm automatically.
 
 ### Release requirements
 
 - Repository secret: `NPM_TOKEN` with permission to publish `mcp-watchtower`
-- Built-in `GITHUB_TOKEN` handles the release PR, tags, and GitHub Release creation
+- The workflow's built-in `GITHUB_TOKEN` must be allowed to push the release commit back to `main` (or bypass branch protection for that commit)
 
 ### When to add a changeset
 
@@ -186,9 +185,9 @@ npm run pack:check
 
 ### If a release fails
 
-- If the workflow fails before publishing to npm, fix the issue on `main`; the release PR will be regenerated or updated automatically.
+- If the workflow fails before publishing to npm, fix the issue on `main` and rerun the workflow on the latest `main` commit.
 - If npm publish fails because of auth or registry configuration, fix `NPM_TOKEN` or package permissions and rerun the workflow.
-- If a version was tagged but npm did not receive the package, inspect the failed Actions logs before retrying so you do not attempt to republish an existing version.
+- If the version bump commit already landed on `main` but npm did not receive the package, inspect the failed Actions logs and rerun the workflow on the latest `main` commit instead of changing the version again.
 
 ## Semantic index releases
 

@@ -38,6 +38,7 @@
         "full-build": "npm run crawl && npm run embed && npm run build-index",
         "pack:check": "node scripts/verify-package.mjs",
         "publish-index": "node --env-file=.env dist/scripts/publish-index.js",
+        "release:check": "npm run build && npm test && npm run pack:check",
         "release": "npm run build && npm test && npm run pack:check && changeset publish",
         "test": "vitest run",
         "test:watch": "vitest",
