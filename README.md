@@ -71,7 +71,7 @@ Use `--platform` to treat static name collisions as critical.
 | Static | Duplicate names, naming convention drift, suspicious descriptions, excessive tool counts | Yes, for critical findings |
 | Semantic | `ALREADY_IN_CORPUS`, `SEMANTIC_OVERLAP`, `SEMANTIC_PARAMETER_CONFLICT` | No, warning/informational only |
 
-Exit code `0` means no critical static findings were found. Exit code `1` means at least one critical static finding was found.
+Exit code `0` means no critical static findings were found and the scan completed successfully. Exit code `1` means either at least one critical static finding was found or the CLI encountered a runtime/usage error (for example, invalid input or a connection failure).
 
 ## Programmatic usage
 
