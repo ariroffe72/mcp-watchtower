@@ -1,5 +1,3 @@
-import { basename } from 'node:path'
-
 export interface ScanInputOptions {
   server?: string
   remote?: string
@@ -55,6 +53,6 @@ export function deriveServerNameFromUrl(endpoint: string): string {
 }
 
 export function deriveServerNameFromManifest(manifestPath: string): string {
-  const filename = basename(manifestPath)
+  const filename = manifestPath.split(/[\\/]/).pop() ?? ''
   return filename.replace(/\.[^.]+$/, '') || 'manifest'
 }
