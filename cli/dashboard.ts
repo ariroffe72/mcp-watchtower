@@ -48,8 +48,11 @@ export async function startDashboardServer(options: StartDashboardServerOptions)
 
   await ensureDashboardRoot(dashboardRoot)
 
-  const server = createServer(async (request, response) => {
-    await handleDashboardRequest(request, response, dashboardRoot, report)
+  const server = createServer((request, response) => {
+    handleDashboardRequest(request, response, dashboardRoot, report).catch(() => {
+      response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
+      response.end('Internal server error')
+    })
   })
 
   await listen(server, options.port, options.host)
