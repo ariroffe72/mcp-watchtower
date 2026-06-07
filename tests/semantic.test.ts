@@ -91,7 +91,9 @@ describe('SemanticAnalyzer', () => {
 
     expect(toolStarts).toEqual(['get_stock_price', 'get_company_info'])
     expect(findingCodes).toContain('SEMANTIC_OVERLAP')
-    expect(report.findings.some(finding => finding.code === 'SEMANTIC_OVERLAP')).toBe(true)
+    const overlapFinding = report.findings.find(finding => finding.code === 'SEMANTIC_OVERLAP')
+    expect(overlapFinding).toBeDefined()
+    expect(overlapFinding?.toolIndexes).toEqual([0])
     expect(phaseCompletions).toEqual([report.findings.length])
   })
 })

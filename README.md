@@ -44,6 +44,10 @@ npx mcp-watchtower scan --manifest ./tools.json --name my-server
 
 # Machine-readable output
 npx mcp-watchtower scan --server "uvx my-server" --json
+
+# Local dashboard from a saved report
+npx mcp-watchtower scan --server "uvx my-server" --json > report.json
+npx mcp-watchtower dashboard --input ./report.json
 ```
 
 Plain `scan` runs both static and semantic analysis. Common focused scans:
@@ -106,6 +110,7 @@ Run the compiled CLI from a local clone:
 
 ```bash
 node dist/cli/index.js scan --server "uvx my-server"
+node dist/cli/index.js dashboard --input ./report.json
 ```
 
 Useful maintenance commands:

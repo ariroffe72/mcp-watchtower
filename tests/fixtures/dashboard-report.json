@@ -1,0 +1,67 @@
+{
+  "server": "demo-server",
+  "toolCount": 2,
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "PARAMETER_CONFLICT",
+      "message": "price_id and symbol refer to the same concept.",
+      "tool": "get_price",
+      "relatedTool": "lookup_quote",
+      "toolIndexes": [0, 1]
+    }
+  ],
+  "passedAt": "2025-01-01T12:00:00.000Z",
+  "reportVersion": 1,
+  "tools": [
+    {
+      "index": 0,
+      "name": "get_price",
+      "description": "Get a stock price.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker symbol"
+          }
+        },
+        "required": ["symbol"]
+      }
+    },
+    {
+      "index": 1,
+      "name": "lookup_quote",
+      "description": "Look up a quote."
+    }
+  ],
+  "analysis": {
+    "static": {
+      "status": "completed",
+      "ran": true,
+      "toolCount": 2,
+      "findingCount": 1,
+      "completedAt": "2025-01-01T12:00:00.000Z"
+    },
+    "semantic": {
+      "status": "completed",
+      "ran": true,
+      "toolCount": 2,
+      "findingCount": 1,
+      "completedAt": "2025-01-01T12:01:00.000Z"
+    }
+  },
+  "semanticFindings": [
+    {
+      "severity": "warning",
+      "code": "SEMANTIC_OVERLAP",
+      "tool": "get_price",
+      "matchedTool": "fetch_market_price",
+      "matchedServer": "corpus-server",
+      "matchedDisplayName": "Corpus Server",
+      "similarity": 0.91,
+      "message": "Semantic overlap detected.",
+      "toolIndexes": [0]
+    }
+  ]
+}

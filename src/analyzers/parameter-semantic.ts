@@ -122,6 +122,7 @@ export class ParameterSemanticAnalyzer {
             matchedDisplayName: serverName,
             matchedParameter: right.name,
             similarity,
+            toolIndexes: [toolIndex, otherToolIndex],
             message: `Parameter '${left.name}' in '${left.toolName}' is semantically similar to '${right.name}' in '${right.toolName}' (similarity: ${similarity.toFixed(2)}) — consider using a shared name or clearer descriptions`,
           }
 

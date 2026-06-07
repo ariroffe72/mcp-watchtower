@@ -20,6 +20,8 @@ export interface Finding {
   tool?: string
   /** Second tool involved, for conflict findings */
   relatedTool?: string
+  /** Stable index references into the top-level scan report tools array. */
+  toolIndexes?: number[]
 }
 
 export type AnalysisPhase = 'static' | 'semantic'
@@ -84,6 +86,8 @@ export interface SemanticFinding {
   matchedParameter?: string
   similarity: number
   message: string
+  /** Stable index references into the top-level scan report tools array. */
+  toolIndexes?: number[]
 }
 
 export interface SemanticReport {
@@ -91,4 +95,28 @@ export interface SemanticReport {
   toolCount: number
   findings: SemanticFinding[]
   scannedAt: string
+}
+
+export const REPORT_VERSION = 1
+
+export interface ReportTool extends ToolSchema {
+  index: number
+}
+
+export interface AnalysisSummary {
+  status: 'completed' | 'skipped'
+  ran: boolean
+  toolCount: number
+  findingCount: number
+  completedAt?: string
+}
+
+export interface ScanReport extends StaticReport {
+  reportVersion: typeof REPORT_VERSION
+  tools: ReportTool[]
+  analysis: {
+    static: AnalysisSummary
+    semantic: AnalysisSummary
+  }
+  semanticFindings: SemanticFinding[]
 }
