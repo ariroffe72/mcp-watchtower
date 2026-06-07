@@ -55,5 +55,5 @@ function buildPhaseSummary(
     toolCount,
     findingCount,
     completedAt,
-  } as const
+  }
 }
