@@ -11,6 +11,6 @@ export default defineConfig({
   publicDir: false,
   build: {
     outDir,
-    emptyOutDir: false,
-  },
+    emptyOutDir: true,
+  }
 })
