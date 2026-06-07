@@ -80,6 +80,7 @@ describe('ParameterSemanticAnalyzer', () => {
     expect(findings[0].tool).toBe('list_portfolios')
     expect(findings[0].matchedTool).toBe('summarize_allocations')
     expect(findings[0].matchedParameter).toBe('holdings')
+    expect(findings[0].toolIndexes).toEqual([0, 1])
   })
 
   it('skips conflicts already covered by static normalization', async () => {

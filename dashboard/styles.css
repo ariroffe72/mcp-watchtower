@@ -1,0 +1,174 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, Arial, sans-serif;
+  background: #f5f7fb;
+  color: #1e293b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.hero,
+.section,
+.status-card,
+.stat-card,
+.tool-card,
+.finding-section {
+  background: #ffffff;
+  border: 1px solid #dbe2ea;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.hero,
+.section,
+.status-card {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.eyebrow,
+.stat-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hero h1,
+.section h2,
+.tool-header h3 {
+  margin: 0 0 8px;
+}
+
+.hero-copy,
+.tool-description,
+.tool-parameters,
+.empty-copy,
+.stat-detail,
+.finding-meta,
+.finding-item p {
+  color: #475569;
+}
+
+.card-grid,
+.shared-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  padding: 20px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.section-heading {
+  margin-bottom: 16px;
+}
+
+.tool-list {
+  display: grid;
+  gap: 16px;
+}
+
+.tool-card {
+  padding: 20px;
+}
+
+.tool-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.tool-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge,
+.severity {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.severity-critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.severity-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.severity-info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.finding-section {
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.finding-list,
+.finding-meta {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+.finding-item + .finding-item {
+  margin-top: 12px;
+}
+
+.finding-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.status-card-error {
+  border-color: #fecaca;
+}
+
+@media (max-width: 720px) {
+  .tool-header {
+    flex-direction: column;
+  }
+}

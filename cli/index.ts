@@ -5,7 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { refreshIndexIfNeeded } from '../src/index-updater/index.js'
-import { SemanticAnalyzer, StaticAnalyzer } from '../src/index.js'
+import { buildScanReport, SemanticAnalyzer, StaticAnalyzer } from '../src/index.js'
 import type { ToolSchema } from '../src/index.js'
 import chalk from 'chalk'
 import {
@@ -16,6 +16,7 @@ import {
   type ScanInputOptions,
 } from './input.js'
 import { resolveAnalysisMode } from './analysis.js'
+import { runDashboardCommand } from './dashboard.js'
 import { createProgressReporter, printHuman } from './output.js'
 
 const program = new Command()
@@ -74,25 +75,44 @@ program
             findings: [],
             passedAt: new Date().toISOString(),
           }
-      const semanticFindings = runSemantic
-        ? (await new SemanticAnalyzer({
+      const semanticReport = runSemantic
+        ? await new SemanticAnalyzer({
             threshold: options.threshold,
             reporter,
-          }).analyze(serverName, tools)).findings
-        : []
+          }).analyze(serverName, tools)
+        : undefined
+      const semanticFindings = semanticReport?.findings ?? []
       const hasCritical = staticReport.findings.some(f => f.severity === 'critical')
 
       if (options.json) {
-        process.stdout.write(JSON.stringify({
-          ...staticReport,
-          semanticFindings,
-        }, null, 2) + '\n')
+        process.stdout.write(JSON.stringify(buildScanReport({
+          tools,
+          staticReport,
+          semanticReport,
+          ranStatic: runStatic,
+          ranSemantic: runSemantic,
+        }), null, 2) + '\n')
       } else {
         printHuman(staticReport.server, staticReport.toolCount, staticReport.findings, semanticFindings, {
           verbose: options.verbose,
         })
       }
       process.exit(hasCritical ? 1 : 0)
+    } catch (err) {
+      process.stderr.write(`\nError: ${(err as Error).message}\n\n`)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('dashboard')
+  .description('Serve a local dashboard for a saved JSON scan report')
+  .requiredOption('-i, --input <file>', 'path to a saved JSON scan report')
+  .option('--host <host>', 'host interface to bind (default: 127.0.0.1)', '127.0.0.1')
+  .option('--port <number>', 'port to bind (default: 4174)', parsePort, 4174)
+  .action(async (options: DashboardOptions) => {
+    try {
+      await runDashboardCommand(options)
     } catch (err) {
       process.stderr.write(`\nError: ${(err as Error).message}\n\n`)
       process.exit(1)
@@ -145,6 +165,12 @@ interface ScanOptions extends ScanInputOptions {
   verbose?: boolean
   threshold?: number
   maxTools: string
+}
+
+interface DashboardOptions {
+  input: string
+  host: string
+  port: number
 }
 
 async function fetchToolsFromLocalServer(command: string): Promise<ToolSchema[]> {
@@ -271,6 +297,15 @@ function parseThreshold(value: string): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
     throw new InvalidArgumentError('Threshold must be a number between 0 and 1.')
+  }
+
+  return parsed
+}
+
+function parsePort(value: string): number {
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+    throw new InvalidArgumentError('Port must be an integer between 0 and 65535.')
   }
 
   return parsed

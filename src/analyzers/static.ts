@@ -62,17 +62,17 @@ export class StaticAnalyzer {
    */
   analyze(serverName: string, tools: ToolSchema[]): StaticReport {
     const findings: Finding[] = []
-    const duplicateCounts = countToolNames(tools)
+    const toolNameIndexes = indexToolNames(tools)
     const majorityConvention = determineMajorityConvention(tools)
     const emittedDuplicateNames = new Set<string>()
 
     for (let index = 0; index < tools.length; index += 1) {
       const tool = tools[index]
       this.reportToolStart(tool.name)
-      this.recordFindings(findings, this.checkDuplicateName(tool, duplicateCounts, emittedDuplicateNames))
-      this.recordFindings(findings, this.checkNamingConvention(tool, majorityConvention))
+      this.recordFindings(findings, this.checkDuplicateName(tool, toolNameIndexes, emittedDuplicateNames))
+      this.recordFindings(findings, this.checkNamingConvention(tool, index, majorityConvention))
       this.recordFindings(findings, this.checkParameterConflicts(tool, index, tools))
-      this.recordFindings(findings, this.checkShadowPatterns(tool))
+      this.recordFindings(findings, this.checkShadowPatterns(tool, index))
     }
 
     this.recordFindings(findings, this.checkToolCount(tools))
@@ -115,18 +115,19 @@ export class StaticAnalyzer {
    */
   private checkDuplicateName(
     tool: ToolSchema,
-    counts: Map<string, number>,
+    toolNameIndexes: Map<string, number[]>,
     emitted: Set<string>,
   ): Finding[] {
-    const count = counts.get(tool.name) ?? 0
-    if (count <= 1 || emitted.has(tool.name)) return []
+    const indexes = toolNameIndexes.get(tool.name) ?? []
+    if (indexes.length <= 1 || emitted.has(tool.name)) return []
 
     emitted.add(tool.name)
     return [{
       code: 'DUPLICATE_TOOL_NAME',
       severity: 'critical',
       tool: tool.name,
-      message: `Tool name '${tool.name}' is defined ${count} times in this server`,
+      toolIndexes: indexes,
+      message: `Tool name '${tool.name}' is defined ${indexes.length} times in this server`,
     }]
   }
 
@@ -137,7 +138,7 @@ export class StaticAnalyzer {
    * Finding code: NAMING_CONVENTION
    * Severity: warning
    */
-  private checkNamingConvention(tool: ToolSchema, majority: Convention | null): Finding[] {
+  private checkNamingConvention(tool: ToolSchema, toolIndex: number, majority: Convention | null): Finding[] {
     if (majority === null) return []
 
     const detected = detectConvention(tool.name)
@@ -147,6 +148,7 @@ export class StaticAnalyzer {
       code: 'NAMING_CONVENTION',
       severity: 'warning',
       tool: tool.name,
+      toolIndexes: [toolIndex],
       message: `Tool '${tool.name}' uses ${detected} but majority convention is ${majority}`,
     }]
   }
@@ -187,6 +189,7 @@ export class StaticAnalyzer {
             severity: 'warning',
             tool: toolA.name,
             relatedTool: toolB.name,
+            toolIndexes: [toolAIndex, j],
             message: `Parameter '${paramA}' in '${toolA.name}' and '${paramB}' in '${toolB.name}' likely refer to the same concept — consider using consistent naming`,
           })
         }
@@ -203,7 +206,7 @@ export class StaticAnalyzer {
    * Finding code: SHADOW_PATTERN
    * Severity: warning (critical if the matched pattern is marked critical)
    */
-  private checkShadowPatterns(tool: ToolSchema): Finding[] {
+  private checkShadowPatterns(tool: ToolSchema, toolIndex: number): Finding[] {
     const findings: Finding[] = []
 
     for (const pattern of this.shadowPatterns) {
@@ -214,6 +217,7 @@ export class StaticAnalyzer {
           code: 'SHADOW_PATTERN',
           severity: pattern.severity,
           tool: tool.name,
+          toolIndexes: [toolIndex],
           message: `Tool "${tool.name}" contains ${pattern.risk} pattern: "${excerpt}"`,
         })
       }
@@ -240,11 +244,14 @@ export class StaticAnalyzer {
   }
 }
 
-function countToolNames(tools: ToolSchema[]): Map<string, number> {
-  const counts = new Map<string, number>()
+function indexToolNames(tools: ToolSchema[]): Map<string, number[]> {
+  const counts = new Map<string, number[]>()
 
-  for (const tool of tools) {
-    counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1)
+  for (let index = 0; index < tools.length; index += 1) {
+    const tool = tools[index]
+    const indexes = counts.get(tool.name) ?? []
+    indexes.push(index)
+    counts.set(tool.name, indexes)
   }
 
   return counts

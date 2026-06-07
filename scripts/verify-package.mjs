@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 
 const requiredPaths = [
   'dist/cli/index.js',
+  'dist/dashboard/index.html',
   'dist/src/index.js',
   'dist/src/analyzers/semantic.js',
   'dist/src/embeddings/provider.js',

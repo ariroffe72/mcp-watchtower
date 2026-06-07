@@ -110,7 +110,7 @@ export class SemanticAnalyzer {
           continue
         }
 
-        const finding = buildFinding(tool, matched, similarity)
+        const finding = buildFinding(tool, toolIndex, matched, similarity)
         findings.push(finding)
         this.reportFinding(finding)
       }
@@ -168,7 +168,7 @@ async function computeSimilarity(
   return similarity
 }
 
-function buildFinding(tool: ToolSchema, matched: SemanticMetadata, similarity: number): SemanticFinding {
+function buildFinding(tool: ToolSchema, toolIndex: number, matched: SemanticMetadata, similarity: number): SemanticFinding {
   if (similarity >= 0.95 && tool.name.localeCompare(matched.toolName, undefined, { sensitivity: 'accent' }) === 0) {
     return {
       severity: 'info',
@@ -178,6 +178,7 @@ function buildFinding(tool: ToolSchema, matched: SemanticMetadata, similarity: n
       matchedServer: matched.server,
       matchedDisplayName: matched.displayName,
       similarity,
+      toolIndexes: [toolIndex],
       message: `'${tool.name}' already exists in the corpus as '${matched.toolName}' in ${matched.displayName} (similarity: ${similarity.toFixed(2)}) — if this is your server, no action needed`,
     }
   }
@@ -190,6 +191,7 @@ function buildFinding(tool: ToolSchema, matched: SemanticMetadata, similarity: n
     matchedServer: matched.server,
     matchedDisplayName: matched.displayName,
     similarity,
+    toolIndexes: [toolIndex],
     message: `'${tool.name}' is semantically similar to '${matched.toolName}' in ${matched.displayName} (similarity: ${similarity.toFixed(2)}) — consider adding disambiguation to your description`,
   }
 }

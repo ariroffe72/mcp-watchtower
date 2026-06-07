@@ -116,6 +116,7 @@ describe('StaticAnalyzer', () => {
       expect(dups).toHaveLength(1)
       expect(dups[0].severity).toBe('critical')
       expect(dups[0].tool).toBe('get_price')
+      expect(dups[0].toolIndexes).toEqual([0, 1])
     })
 
     it('does not flag unique names', () => {
@@ -144,6 +145,7 @@ describe('StaticAnalyzer', () => {
       const findings = report.findings.filter(f => f.code === 'PARAMETER_CONFLICT')
       expect(findings.length).toBeGreaterThan(0)
       expect(findings[0].severity).toBe('warning')
+      expect(findings[0].toolIndexes).toEqual([0, 1])
     })
 
     it('flags pluralized resource names against id-based variants', () => {
@@ -166,6 +168,7 @@ describe('StaticAnalyzer', () => {
       const findings = report.findings.filter(f => f.code === 'SHADOW_PATTERN')
       expect(findings.length).toBeGreaterThan(0)
       expect(findings[0].tool).toBe('get_price')
+      expect(findings[0].toolIndexes).toEqual([0])
     })
 
     it('does not flag "call this tool first thing in the morning"', () => {
