@@ -63,10 +63,11 @@ export async function startDashboardServer(options: StartDashboardServerOptions)
   }
 
   const displayHost = options.host === '0.0.0.0' ? '127.0.0.1' : address.address
+  const urlHost = displayHost.includes(':') ? `[${displayHost}]` : displayHost
   return {
     report,
     server,
-    url: `http://${displayHost}:${address.port}`,
+    url: `http://${urlHost}:${address.port}`,
   }
 }
 
