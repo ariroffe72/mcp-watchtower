@@ -1,5 +1,5 @@
 import { REPORT_VERSION } from '../types.js'
-import type { ScanReport, SemanticReport, StaticReport, ToolSchema } from '../types.js'
+import type { AnalysisSummary, ScanReport, SemanticReport, StaticReport, ToolSchema } from '../types.js'
 
 interface BuildScanReportOptions {
   tools: ToolSchema[]
@@ -48,7 +48,7 @@ function buildPhaseSummary(
   toolCount: number,
   findingCount: number,
   completedAt?: string,
-) {
+): AnalysisSummary {
   return {
     status: ran ? 'completed' : 'skipped',
     ran,
